@@ -1,0 +1,485 @@
+.career-guidance {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 2rem;
+}
+
+.career-guidance h1 {
+  color: var(--primary-brown);
+  margin-bottom: 0.5rem;
+}
+
+.intro-text {
+  color: var(--dark-gray);
+  margin-bottom: 2rem;
+}
+
+/* Assessment Form Styles */
+.assessment-form {
+  background-color: white;
+  padding: 2rem;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.question-section {
+  margin-bottom: 2rem;
+}
+
+.question-section h3 {
+  color: var(--primary-brown);
+  margin-bottom: 1rem;
+}
+
+.options-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 1rem;
+}
+
+.option-btn {
+  padding: 1rem;
+  background: none;
+  border: 2px solid var(--primary-brown);
+  color: var(--primary-brown);
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 1rem;
+  transition: all 0.3s ease;
+}
+
+.option-btn:hover {
+  background-color: var(--primary-brown);
+  color: white;
+}
+
+.option-btn.selected {
+  background-color: var(--primary-brown);
+  color: white;
+}
+
+.submit-btn {
+  width: 100%;
+  padding: 1rem;
+  background-color: var(--primary-brown);
+  color: white;
+  border: none;
+  border-radius: 4px;
+  font-size: 1.1rem;
+  cursor: pointer;
+  transition: opacity 0.3s;
+  margin-top: 2rem;
+}
+
+.submit-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.submit-btn.loading {
+  position: relative;
+  color: transparent;
+}
+
+.submit-btn.loading::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 20px;
+  height: 20px;
+  border: 2px solid white;
+  border-radius: 50%;
+  border-top-color: transparent;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* Results Styles */
+.result-section {
+  margin-top: 2rem;
+}
+
+.result-section h2 {
+  color: var(--primary-brown);
+  margin-bottom: 1.5rem;
+}
+
+.career-card {
+  background-color: white;
+  padding: 2rem;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  margin-bottom: 2rem;
+}
+
+.career-card h3 {
+  color: var(--primary-brown);
+  margin-bottom: 1rem;
+}
+
+.description {
+  color: var(--dark-gray);
+  margin-bottom: 1.5rem;
+  line-height: 1.6;
+}
+
+.career-details {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 2rem;
+}
+
+.career-details h4 {
+  color: var(--primary-brown);
+  margin-bottom: 1rem;
+}
+
+.skill-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.skill-tag {
+  background-color: var(--light-gray);
+  color: var(--primary-brown);
+  padding: 0.4rem 0.8rem;
+  border-radius: 4px;
+  font-size: 0.9rem;
+}
+
+.education ul {
+  list-style: none;
+  padding: 0;
+}
+
+.education li {
+  padding: 0.5rem 0;
+  color: var(--dark-gray);
+  border-bottom: 1px solid var(--light-gray);
+}
+
+.education li:last-child {
+  border-bottom: none;
+}
+
+.resource-link {
+  display: flex;
+  align-items: center;
+  padding: 0.8rem;
+  background-color: var(--light-gray);
+  border-radius: 4px;
+  text-decoration: none;
+  color: var(--primary-brown);
+  margin-bottom: 0.5rem;
+  transition: background-color 0.3s;
+}
+
+.resource-link:hover {
+  background-color: var(--primary-brown);
+  color: white;
+}
+
+.resource-type {
+  background-color: var(--primary-brown);
+  color: white;
+  padding: 0.3rem 0.6rem;
+  border-radius: 4px;
+  margin-right: 0.8rem;
+  font-size: 0.8rem;
+}
+
+.restart-btn {
+  padding: 1rem 2rem;
+  background-color: var(--light-gray);
+  color: var(--primary-brown);
+  border: none;
+  border-radius: 4px;
+  font-size: 1rem;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.restart-btn:hover {
+  background-color: var(--primary-brown);
+  color: white;
+}
+
+.career-paths {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+  gap: 2rem;
+  margin-bottom: 3rem;
+}
+
+.career-card {
+  background-color: white;
+  padding: 1.5rem;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.career-card h3 {
+  color: var(--primary-brown);
+  margin-bottom: 1rem;
+}
+
+.description {
+  color: var(--dark-gray);
+  margin-bottom: 1.5rem;
+  line-height: 1.6;
+}
+
+.career-details {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.career-details h4 {
+  color: var(--primary-brown);
+  margin-bottom: 0.8rem;
+  font-size: 1.1rem;
+}
+
+.roles ul {
+  list-style: none;
+  padding: 0;
+}
+
+.roles li {
+  padding: 0.5rem 0;
+  color: var(--dark-gray);
+  position: relative;
+  padding-left: 1.5rem;
+}
+
+.roles li:before {
+  content: "•";
+  color: var(--primary-brown);
+  position: absolute;
+  left: 0;
+}
+
+.skill-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.skill-tag {
+  background-color: var(--light-gray);
+  color: var(--primary-brown);
+  padding: 0.4rem 0.8rem;
+  border-radius: 4px;
+  font-size: 0.9rem;
+}
+
+.resources {
+  display: flex;
+  flex-direction: column;
+  gap: 0.8rem;
+}
+
+.resource-link {
+  display: flex;
+  align-items: center;
+  padding: 0.8rem;
+  background-color: var(--light-gray);
+  border-radius: 4px;
+  text-decoration: none;
+  color: var(--primary-brown);
+  transition: background-color 0.3s;
+}
+
+.resource-link:hover {
+  background-color: var(--primary-brown);
+  color: white;
+}
+
+.resource-type {
+  background-color: var(--primary-brown);
+  color: white;
+  padding: 0.3rem 0.6rem;
+  border-radius: 4px;
+  margin-right: 0.8rem;
+  font-size: 0.8rem;
+  font-weight: bold;
+}
+
+.career-tips {
+  background-color: white;
+  padding: 2rem;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  margin-top: 2rem;
+}
+
+.career-tips h3 {
+  color: var(--primary-brown);
+  margin-bottom: 1rem;
+}
+
+.career-tips ul {
+  list-style: none;
+  padding: 0;
+}
+
+.career-tips li {
+  padding: 0.8rem 0;
+  color: var(--dark-gray);
+  position: relative;
+  padding-left: 1.5rem;
+  border-bottom: 1px solid var(--light-gray);
+}
+
+.career-tips li:last-child {
+  border-bottom: none;
+}
+
+.career-tips li:before {
+  content: "→";
+  color: var(--primary-brown);
+  position: absolute;
+  left: 0;
+}
+
+.ai-recommendation {
+  background-color: white;
+  padding: 2rem;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  margin-bottom: 2rem;
+}
+
+.ai-content {
+  color: var(--dark-gray);
+  line-height: 1.6;
+}
+
+.ai-content p {
+  margin-bottom: 1rem;
+}
+
+.recommended-careers {
+  margin-bottom: 2rem;
+}
+
+.ai-career-path {
+  background-color: var(--light-gray);
+  padding: 1.5rem;
+  border-radius: 8px;
+  margin-bottom: 1.5rem;
+}
+
+.ai-career-path h3 {
+  color: var(--primary-brown);
+  font-size: 1.3rem;
+  margin-bottom: 1rem;
+  border-bottom: 2px solid var(--primary-brown);
+  padding-bottom: 0.5rem;
+}
+
+.detail-item {
+  display: flex;
+  margin-bottom: 0.8rem;
+  line-height: 1.6;
+}
+
+.detail-label {
+  font-weight: 600;
+  color: var(--primary-brown);
+  min-width: 150px;
+  margin-right: 1rem;
+}
+
+.detail-value {
+  color: var(--dark-gray);
+  flex: 1;
+}
+
+.skill-development {
+  background-color: var(--light-gray);
+  padding: 1.5rem;
+  border-radius: 8px;
+  margin-bottom: 1.5rem;
+}
+
+.skill-list {
+  list-style: none;
+  padding: 0;
+}
+
+.skill-list li {
+  position: relative;
+  padding-left: 1.5rem;
+  margin-bottom: 0.8rem;
+  color: var(--dark-gray);
+}
+
+.skill-list li::before {
+  content: "→";
+  position: absolute;
+  left: 0;
+  color: var(--primary-brown);
+}
+
+.next-steps {
+  margin-top: 2rem;
+}
+
+.steps-timeline {
+  position: relative;
+  padding-left: 2rem;
+}
+
+.timeline-item {
+  position: relative;
+  padding-bottom: 1.5rem;
+  padding-left: 2rem;
+}
+
+.timeline-item::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  background-color: var(--primary-brown);
+}
+
+.timeline-number {
+  position: absolute;
+  left: -1rem;
+  width: 2rem;
+  height: 2rem;
+  background-color: var(--primary-brown);
+  color: white;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 600;
+}
+
+.timeline-content {
+  background-color: var(--light-gray);
+  padding: 1rem;
+  border-radius: 4px;
+  color: var(--dark-gray);
+}
+
+.error-message {
+  background-color: #fee2e2;
+  color: #dc2626;
+  padding: 1rem;
+  border-radius: 4px;
+  margin-bottom: 1rem;
+}

@@ -1,0 +1,80 @@
+.feedback {
+  max-width: 800px;
+  margin: 0 auto;
+}
+
+.feedback h1 {
+  color: var(--primary-brown);
+  margin-bottom: 0.5rem;
+}
+
+.subtitle {
+  color: var(--dark-gray);
+  margin-bottom: 2rem;
+}
+
+.feedback-form {
+  background-color: white;
+  padding: 2rem;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.form-group {
+  margin-bottom: 1.5rem;
+}
+
+.form-group label {
+  display: block;
+  color: var(--primary-brown);
+  margin-bottom: 0.5rem;
+  font-weight: 500;
+}
+
+.form-group select,
+.form-group textarea {
+  width: 100%;
+  padding: 0.8rem;
+  border: 1px solid var(--light-gray);
+  border-radius: 4px;
+  font-size: 1rem;
+}
+
+.form-group select:focus,
+.form-group textarea:focus {
+  outline: none;
+  border-color: var(--primary-brown);
+}
+
+.rating-input {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.rating-star {
+  background: none;
+  border: none;
+  font-size: 1.5rem;
+  color: var(--light-gray);
+  cursor: pointer;
+  transition: color 0.3s;
+}
+
+.rating-star.active {
+  color: var(--primary-brown);
+}
+
+.submit-btn {
+  background-color: var(--primary-brown);
+  color: white;
+  border: none;
+  padding: 1rem 2rem;
+  border-radius: 4px;
+  font-size: 1rem;
+  cursor: pointer;
+  transition: background-color 0.3s;
+}
+
+.submit-btn:hover {
+  background-color: var(--dark-brown);
+}

@@ -1,0 +1,66 @@
+.dashboard {
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.welcome-message {
+  font-size: 2rem;
+  margin-bottom: 2rem;
+  color: var(--primary-brown);
+}
+
+.quote-container {
+  background-color: white;
+  padding: 2rem;
+  border-radius: 8px;
+  margin-bottom: 2rem;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.quote {
+  font-size: 1.5rem;
+  font-style: italic;
+  color: var(--primary-brown);
+  margin-bottom: 1rem;
+}
+
+.author {
+  font-weight: bold;
+  color: var(--dark-gray);
+}
+
+.story-title {
+  color: var(--primary-brown);
+  margin-bottom: 1rem;
+}
+
+.story {
+  font-size: 1.1rem;
+  line-height: 1.6;
+  color: var(--dark-gray);
+}
+
+.quick-stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 1.5rem;
+  margin-top: 2rem;
+}
+
+.stat-card {
+  background-color: white;
+  padding: 1.5rem;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.stat-card h3 {
+  color: var(--primary-brown);
+  margin-bottom: 0.5rem;
+}
+
+.stat-card p {
+  font-size: 1.25rem;
+  color: var(--dark-gray);
+  font-weight: bold;
+}

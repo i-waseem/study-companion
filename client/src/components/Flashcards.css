@@ -1,0 +1,137 @@
+.flashcards-container {
+  max-width: 800px;
+  margin: 0 auto;
+  padding: 2rem;
+}
+
+.deck-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 1.5rem;
+  margin-top: 2rem;
+}
+
+.deck-card {
+  background-color: white;
+  padding: 1.5rem;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  text-align: center;
+}
+
+.deck-card h3 {
+  color: var(--primary-brown);
+  margin-bottom: 0.5rem;
+}
+
+.deck-card p {
+  color: var(--dark-gray);
+  margin-bottom: 1rem;
+}
+
+.study-mode {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2rem;
+}
+
+.study-header {
+  text-align: center;
+  width: 100%;
+}
+
+.card-count {
+  color: var(--dark-gray);
+  margin-top: 0.5rem;
+}
+
+.flashcard {
+  width: 100%;
+  max-width: 500px;
+  height: 300px;
+  perspective: 1000px;
+  cursor: pointer;
+}
+
+.flashcard-inner {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  text-align: center;
+  transition: transform 0.6s;
+  transform-style: preserve-3d;
+}
+
+.flashcard.flipped .flashcard-inner {
+  transform: rotateY(180deg);
+}
+
+.flashcard-front,
+.flashcard-back {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  backface-visibility: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2rem;
+  background-color: white;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.flashcard-front {
+  background-color: white;
+}
+
+.flashcard-back {
+  background-color: var(--light-brown);
+  color: white;
+  transform: rotateY(180deg);
+}
+
+.flashcard-front p,
+.flashcard-back p {
+  font-size: 1.2rem;
+  line-height: 1.6;
+}
+
+.study-controls {
+  display: flex;
+  gap: 1rem;
+  margin-top: 1rem;
+}
+
+.study-controls button,
+.exit-button {
+  padding: 0.8rem 1.5rem;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background-color 0.3s;
+}
+
+.study-controls button {
+  background-color: var(--primary-brown);
+  color: white;
+}
+
+.study-controls button:hover:not(:disabled) {
+  background-color: var(--light-brown);
+}
+
+.study-controls button:disabled {
+  background-color: var(--dark-gray);
+  cursor: not-allowed;
+}
+
+.exit-button {
+  background-color: var(--dark-gray);
+  color: white;
+}
+
+.exit-button:hover {
+  background-color: var(--light-gray);
+}
