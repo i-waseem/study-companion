@@ -1,9 +1,10 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../context/AuthContext';
 import axios from 'axios';
 import './Auth.css';
 
-function Register({ setAuth, setUser }) {
+function Register() {
   const [formData, setFormData] = useState({
     username: '',
     email: '',
@@ -12,6 +13,7 @@ function Register({ setAuth, setUser }) {
   });
   const [error, setError] = useState('');
   const navigate = useNavigate();
+  const { login } = useAuth();
 
   const handleChange = (e) => {
     setFormData({
@@ -35,9 +37,7 @@ function Register({ setAuth, setUser }) {
         password: formData.password
       });
       
-      localStorage.setItem('token', response.data.token);
-      setAuth(true);
-      setUser(response.data.user);
+      login(response.data.user);
       navigate('/');
     } catch (err) {
       setError(err.response?.data?.message || 'An error occurred');

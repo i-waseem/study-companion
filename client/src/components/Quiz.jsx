@@ -1,55 +1,70 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import './Quiz.css';
 
-const sampleQuizzes = [
-  {
-    id: 1,
-    title: 'Data Structures Fundamentals',
-    description: 'Test your knowledge of basic data structures',
-    questions: [
-      {
-        id: 1,
-        question: 'What is the time complexity of searching in a balanced binary search tree?',
-        options: ['O(1)', 'O(log n)', 'O(n)', 'O(n²)'],
-        correctAnswer: 1
-      },
-      {
-        id: 2,
-        question: 'Which data structure uses LIFO (Last In First Out) principle?',
-        options: ['Queue', 'Stack', 'Linked List', 'Array'],
-        correctAnswer: 1
-      }
-    ]
-  },
-  {
-    id: 2,
-    title: 'Algorithm Analysis',
-    description: 'Challenge yourself with algorithm complexity questions',
-    questions: [
-      {
-        id: 1,
-        question: 'What is the worst-case time complexity of QuickSort?',
-        options: ['O(n log n)', 'O(n²)', 'O(n)', 'O(log n)'],
-        correctAnswer: 1
-      }
-    ]
-  }
-];
+const API_KEY = 'AIzaSyAtRWUwff095kL_SO9YWvCawHjAUdhR0i0';
+const API_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent';
 
 function Quiz() {
-  const [quizzes, setQuizzes] = useState(sampleQuizzes);
-  const [currentQuiz, setCurrentQuiz] = useState(null);
+  const [selectedSubject, setSelectedSubject] = useState("");
+  const [selectedCourse, setSelectedCourse] = useState("");
+  const [selectedTopic, setSelectedTopic] = useState("");
+  const [selectedSubtopic, setSelectedSubtopic] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [quiz, setQuiz] = useState(null);
   const [currentQuestion, setCurrentQuestion] = useState(0);
   const [score, setScore] = useState(0);
   const [showResults, setShowResults] = useState(false);
   const [answers, setAnswers] = useState([]);
 
-  const startQuiz = (quiz) => {
-    setCurrentQuiz(quiz);
-    setCurrentQuestion(0);
-    setScore(0);
-    setShowResults(false);
-    setAnswers(new Array(quiz.questions.length).fill(null));
+  const generateQuiz = async () => {
+    if (!selectedSubtopic) return;
+
+    setLoading(true);
+    try {
+      const prompt = `Create a multiple choice quiz about ${selectedSubtopic} in ${selectedTopic} (${selectedCourse} - ${selectedSubject}). Return ONLY a JSON object in this format, no other text:
+{
+  "questions": [
+    {
+      "question": "What is X?",
+      "options": ["A", "B", "C", "D"],
+      "correctAnswer": 0
+    }
+  ]
+}`;
+
+      const response = await fetch(`${API_URL}?key=${API_KEY}`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          contents: [{
+            parts: [{
+              text: prompt
+            }]
+          }]
+        })
+      });
+
+      const data = await response.json();
+      const quizText = data.candidates[0].content.parts[0].text;
+      
+      // Extract JSON from response
+      const jsonStart = quizText.indexOf('{');
+      const jsonEnd = quizText.lastIndexOf('}') + 1;
+      const quizData = JSON.parse(quizText.slice(jsonStart, jsonEnd));
+
+      setQuiz(quizData);
+      setCurrentQuestion(0);
+      setScore(0);
+      setShowResults(false);
+      setAnswers(new Array(quizData.questions.length).fill(null));
+    } catch (error) {
+      console.error('Error:', error);
+      alert('Failed to generate quiz. Please try again.');
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleAnswer = (answerIndex) => {
@@ -57,11 +72,11 @@ function Quiz() {
     newAnswers[currentQuestion] = answerIndex;
     setAnswers(newAnswers);
 
-    if (answerIndex === currentQuiz.questions[currentQuestion].correctAnswer) {
+    if (answerIndex === quiz.questions[currentQuestion].correctAnswer) {
       setScore(score + 1);
     }
 
-    if (currentQuestion + 1 < currentQuiz.questions.length) {
+    if (currentQuestion + 1 < quiz.questions.length) {
       setCurrentQuestion(currentQuestion + 1);
     } else {
       setShowResults(true);
@@ -69,7 +84,7 @@ function Quiz() {
   };
 
   const resetQuiz = () => {
-    setCurrentQuiz(null);
+    setQuiz(null);
     setCurrentQuestion(0);
     setScore(0);
     setShowResults(false);
@@ -78,58 +93,92 @@ function Quiz() {
 
   return (
     <div className="quiz-container">
-      {!currentQuiz ? (
-        <>
-          <h2>Available Quizzes</h2>
-          <div className="quiz-list">
-            {quizzes.map((quiz) => (
-              <div key={quiz.id} className="quiz-card">
-                <h3>{quiz.title}</h3>
-                <p>{quiz.description}</p>
-                <p className="questions-count">{quiz.questions.length} questions</p>
-                <button onClick={() => startQuiz(quiz)}>Start Quiz</button>
-              </div>
-            ))}
+      <div className="quiz-selection">
+        <div className="selection-group">
+          <label>Subject:</label>
+          <select value={selectedSubject} onChange={(e) => setSelectedSubject(e.target.value)}>
+            <option value="">Select Subject</option>
+            <option value="Computer Science">Computer Science</option>
+            <option value="Mathematics">Mathematics</option>
+          </select>
+        </div>
+
+        {selectedSubject && (
+          <div className="selection-group">
+            <label>Course:</label>
+            <select value={selectedCourse} onChange={(e) => setSelectedCourse(e.target.value)}>
+              <option value="">Select Course</option>
+              <option value="Programming Fundamentals">Programming Fundamentals</option>
+              <option value="Data Structures">Data Structures</option>
+            </select>
           </div>
-        </>
-      ) : showResults ? (
+        )}
+
+        {selectedCourse && (
+          <div className="selection-group">
+            <label>Topic:</label>
+            <select value={selectedTopic} onChange={(e) => setSelectedTopic(e.target.value)}>
+              <option value="">Select Topic</option>
+              <option value="Python Basics">Python Basics</option>
+              <option value="Object-Oriented Programming">Object-Oriented Programming</option>
+            </select>
+          </div>
+        )}
+
+        {selectedTopic && (
+          <div className="selection-group">
+            <label>Subtopic:</label>
+            <select value={selectedSubtopic} onChange={(e) => setSelectedSubtopic(e.target.value)}>
+              <option value="">Select Subtopic</option>
+              <option value="Variables">Variables</option>
+              <option value="Control Flow">Control Flow</option>
+              <option value="Functions">Functions</option>
+            </select>
+          </div>
+        )}
+
+        {selectedSubtopic && !quiz && (
+          <button onClick={generateQuiz} disabled={loading} className="generate-button">
+            {loading ? 'Generating Quiz...' : 'Generate Quiz'}
+          </button>
+        )}
+      </div>
+
+      {quiz && !showResults && (
+        <div className="quiz-content">
+          <h2>Question {currentQuestion + 1} of {quiz.questions.length}</h2>
+          <div className="question-card">
+            <p className="question">{quiz.questions[currentQuestion].question}</p>
+            <div className="options">
+              {quiz.questions[currentQuestion].options.map((option, index) => (
+                <button
+                  key={index}
+                  onClick={() => handleAnswer(index)}
+                  className={`option-button ${answers[currentQuestion] === index ? 'selected' : ''}`}
+                >
+                  {option}
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showResults && (
         <div className="quiz-results">
           <h2>Quiz Results</h2>
           <div className="score-card">
             <h3>Your Score</h3>
             <div className="score">
-              {score} / {currentQuiz.questions.length}
+              {score} / {quiz.questions.length}
             </div>
-            <p className="percentage">
-              {Math.round((score / currentQuiz.questions.length) * 100)}%
-            </p>
+            <div className="score-percentage">
+              {Math.round((score / quiz.questions.length) * 100)}%
+            </div>
           </div>
-          <button onClick={resetQuiz}>Back to Quizzes</button>
-        </div>
-      ) : (
-        <div className="quiz-question">
-          <h2>{currentQuiz.title}</h2>
-          <div className="progress-bar">
-            <div 
-              className="progress" 
-              style={{ width: `${((currentQuestion + 1) / currentQuiz.questions.length) * 100}%` }}
-            ></div>
-          </div>
-          <p className="question-count">
-            Question {currentQuestion + 1} of {currentQuiz.questions.length}
-          </p>
-          <h3>{currentQuiz.questions[currentQuestion].question}</h3>
-          <div className="options">
-            {currentQuiz.questions[currentQuestion].options.map((option, index) => (
-              <button
-                key={index}
-                onClick={() => handleAnswer(index)}
-                className="option-button"
-              >
-                {option}
-              </button>
-            ))}
-          </div>
+          <button onClick={resetQuiz} className="retry-button">
+            Try Another Quiz
+          </button>
         </div>
       )}
     </div>

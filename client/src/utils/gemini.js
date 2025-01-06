@@ -1,5 +1,5 @@
 const GEMINI_API_KEY = 'AIzaSyAtRWUwff095kL_SO9YWvCawHjAUdhR0i0';
-const GEMINI_API_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent';
+const GEMINI_API_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent';
 
 export async function getGeminiResponse(prompt) {
     try {
@@ -13,15 +13,29 @@ export async function getGeminiResponse(prompt) {
                     parts: [{
                         text: prompt
                     }]
-                }]
+                }],
+                generationConfig: {
+                    temperature: 0.7,
+                    topK: 40,
+                    topP: 0.95,
+                    maxOutputTokens: 1024,
+                }
             })
         });
 
         if (!response.ok) {
-            throw new Error('Failed to get response from Gemini');
+            const errorData = await response.json();
+            console.error('Gemini API Error:', errorData);
+            throw new Error(`Failed to get response from Gemini: ${errorData.error?.message || 'Unknown error'}`);
         }
 
         const data = await response.json();
+        
+        if (!data.candidates?.[0]?.content?.parts?.[0]?.text) {
+            console.error('Unexpected Gemini response format:', data);
+            throw new Error('Invalid response format from Gemini');
+        }
+
         return data.candidates[0].content.parts[0].text;
     } catch (error) {
         console.error('Error calling Gemini API:', error);
@@ -47,9 +61,7 @@ Please provide:
    - Entry-level to advanced positions
    - Industry trends and future prospects
 3. Personalized advice for skill development
-4. Recommended next steps
-
-Format the response in a clear, structured way that can be easily parsed.`;
+4. Recommended next steps`;
 }
 
 export function generateQuizPrompt(topic, difficulty = 'medium', count = 5) {
@@ -86,11 +98,7 @@ export function generateStudyNotesPrompt(topic) {
 }
 
 export function generateMotivationalQuotePrompt() {
-    return `Generate a short, powerful motivational quote specifically for students. The quote should:
-1. Be inspiring and encouraging
-2. Focus on academic success, personal growth, or learning
-3. Be concise (maximum 2 sentences)
-4. Be original and not a common, overused quote
-
-Format the response as just the quote text, without any attribution.`;
+    return `Generate an inspiring and motivational quote about learning, education, or personal growth. 
+    The quote should be concise (1-2 sentences) and impactful. 
+    Return just the quote text without attribution.`;
 }

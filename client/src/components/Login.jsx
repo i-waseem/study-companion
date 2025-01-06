@@ -1,15 +1,17 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../context/AuthContext';
 import axios from 'axios';
 import './Auth.css';
 
-function Login({ setAuth, setUser }) {
+function Login() {
   const [formData, setFormData] = useState({
     email: '',
     password: ''
   });
   const [error, setError] = useState('');
   const navigate = useNavigate();
+  const { login } = useAuth();
 
   const handleChange = (e) => {
     setFormData({
@@ -22,9 +24,7 @@ function Login({ setAuth, setUser }) {
     e.preventDefault();
     try {
       const response = await axios.post('http://localhost:5000/api/auth/login', formData);
-      localStorage.setItem('token', response.data.token);
-      setAuth(true);
-      setUser(response.data.user);
+      login(response.data.user);
       navigate('/');
     } catch (err) {
       setError(err.response?.data?.message || 'An error occurred');

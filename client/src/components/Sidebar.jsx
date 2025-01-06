@@ -1,34 +1,34 @@
 import React from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import AuthService from '../services/auth.service';
+import { useAuth } from '../context/AuthContext';
 import './Sidebar.css';
 
-function Sidebar({ username }) {
+function Sidebar() {
+  const { user, logout } = useAuth();
   const navigate = useNavigate();
-  
-  const handleLogout = () => {
-    AuthService.logout();
-    navigate('/login');
-  };
 
-  const getInitials = (name) => {
-    if (!name) return '?';
-    return name
-      .split(' ')
-      .map(word => word[0])
-      .join('')
-      .toUpperCase();
+  const handleLogout = () => {
+    logout();
+    navigate('/login');
   };
 
   return (
     <div className="sidebar">
       <div className="user-info">
-        <div className="avatar">
-          {getInitials(username)}
-        </div>
-        <h2>Welcome, {username || 'User'}!</h2>
+        {user ? (
+          <>
+            <div className="user-avatar">
+              {user.username.charAt(0).toUpperCase()}
+            </div>
+            <div className="user-name">
+              Welcome, {user.username}!
+            </div>
+          </>
+        ) : (
+          <div className="user-name">Welcome!</div>
+        )}
       </div>
-      
+
       <nav className="nav-menu">
         <Link to="/" className="nav-item">
           Home
@@ -56,11 +56,13 @@ function Sidebar({ username }) {
         </Link>
       </nav>
 
-      <div className="logout">
-        <button onClick={handleLogout} className="logout-btn">
-          Logout
-        </button>
-      </div>
+      {user && (
+        <div className="logout">
+          <button className="logout-btn" onClick={handleLogout}>
+            Logout
+          </button>
+        </div>
+      )}
     </div>
   );
 }
