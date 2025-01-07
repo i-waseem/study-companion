@@ -10,14 +10,15 @@ export default defineConfig({
   },
   build: {
     outDir: 'dist',
-    sourcemap: true,
+    sourcemap: false, // Disable sourcemaps in production
+    minify: 'esbuild', // Use esbuild for faster minification
     rollupOptions: {
       external: ['react', 'react-dom', 'react-router-dom'],
       output: {
-        globals: {
-          react: 'React',
-          'react-dom': 'ReactDOM',
-          'react-router-dom': 'ReactRouterDOM'
+        manualChunks: {
+          vendor: ['react', 'react-dom', 'react-router-dom'],
+          // Group common UI components
+          ui: ['@emotion/react', '@emotion/styled', '@fortawesome/fontawesome-free']
         }
       }
     }
