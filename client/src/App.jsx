@@ -1,94 +1,98 @@
-import React, { useState, useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
-import AuthService from './services/auth.service';
+import { AuthProvider, useAuth } from './context/AuthContext';
 import Sidebar from './components/Sidebar';
+import Login from './components/Login';
+import Register from './components/Register';
+import Quiz from './components/Quiz';
 import Home from './components/Home';
 import Subjects from './components/Subjects';
-import Quiz from './components/Quiz';
 import Flashcards from './components/Flashcards';
 import Progress from './components/Progress';
 import Notes from './components/Notes';
-import Feedback from './components/Feedback';
 import CareerGuidance from './components/CareerGuidance';
-import Login from './components/Auth/Login';
-import Register from './components/Auth/Register';
+import Feedback from './components/Feedback';
 import './App.css';
 
-function App() {
-  const [currentUser, setCurrentUser] = useState(null);
+// Protected Route component
+const ProtectedRoute = ({ children }) => {
+  const { user } = useAuth();
+  if (!user) {
+    return <Navigate to="/login" />;
+  }
+  return children;
+};
 
-  useEffect(() => {
-    const user = AuthService.getCurrentUser();
-    if (user) {
-      setCurrentUser(user);
-    }
-  }, []);
-
-  const ProtectedLayout = ({ children }) => {
-    if (!AuthService.isAuthenticated()) {
-      return <Navigate to="/login" />;
-    }
-
-    return (
-      <div className="app">
-        <Sidebar username={currentUser?.username} />
-        <main className="content">
-          {children}
-        </main>
-      </div>
-    );
-  };
+function AppContent() {
+  const { user } = useAuth();
 
   return (
-    <Router>
-      <Routes>
-        {/* Auth Routes */}
-        <Route path="/login" element={<Login />} />
-        <Route path="/register" element={<Register />} />
-        
-        {/* Protected Routes */}
-        <Route path="/" element={
-          <ProtectedLayout>
-            <Home />
-          </ProtectedLayout>
-        } />
-        <Route path="/subjects" element={
-          <ProtectedLayout>
-            <Subjects />
-          </ProtectedLayout>
-        } />
-        <Route path="/quiz" element={
-          <ProtectedLayout>
-            <Quiz />
-          </ProtectedLayout>
-        } />
-        <Route path="/flashcards" element={
-          <ProtectedLayout>
-            <Flashcards />
-          </ProtectedLayout>
-        } />
-        <Route path="/progress" element={
-          <ProtectedLayout>
-            <Progress />
-          </ProtectedLayout>
-        } />
-        <Route path="/notes" element={
-          <ProtectedLayout>
-            <Notes />
-          </ProtectedLayout>
-        } />
-        <Route path="/career-guidance" element={
-          <ProtectedLayout>
-            <CareerGuidance />
-          </ProtectedLayout>
-        } />
-        <Route path="/feedback" element={
-          <ProtectedLayout>
-            <Feedback />
-          </ProtectedLayout>
-        } />
-      </Routes>
-    </Router>
+    <div className="app">
+      {user && <Sidebar />}
+      <div className={`main-content ${user ? 'with-sidebar' : ''}`}>
+        <Routes>
+          <Route path="/login" element={!user ? <Login /> : <Navigate to="/" />} />
+          <Route path="/register" element={!user ? <Register /> : <Navigate to="/" />} />
+          
+          <Route path="/" element={
+            <ProtectedRoute>
+              <Home />
+            </ProtectedRoute>
+          } />
+          
+          <Route path="/subjects" element={
+            <ProtectedRoute>
+              <Subjects />
+            </ProtectedRoute>
+          } />
+          
+          <Route path="/flashcards" element={
+            <ProtectedRoute>
+              <Flashcards />
+            </ProtectedRoute>
+          } />
+          
+          <Route path="/quiz" element={
+            <ProtectedRoute>
+              <Quiz />
+            </ProtectedRoute>
+          } />
+          
+          <Route path="/progress" element={
+            <ProtectedRoute>
+              <Progress />
+            </ProtectedRoute>
+          } />
+          
+          <Route path="/notes" element={
+            <ProtectedRoute>
+              <Notes />
+            </ProtectedRoute>
+          } />
+          
+          <Route path="/career" element={
+            <ProtectedRoute>
+              <CareerGuidance />
+            </ProtectedRoute>
+          } />
+          
+          <Route path="/feedback" element={
+            <ProtectedRoute>
+              <Feedback />
+            </ProtectedRoute>
+          } />
+        </Routes>
+      </div>
+    </div>
+  );
+}
+
+function App() {
+  return (
+    <AuthProvider>
+      <Router>
+        <AppContent />
+      </Router>
+    </AuthProvider>
   );
 }
 
