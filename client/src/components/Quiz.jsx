@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import './Quiz.css';
 
-const API_KEY = 'AIzaSyAtRWUwff095kL_SO9YWvCawHjAUdhR0i0';
+const API_KEY = import.meta.env.VITE_GEMINI_API_KEY;
 const API_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent';
 
 function Quiz() {
