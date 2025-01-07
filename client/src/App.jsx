@@ -14,42 +14,45 @@ import CareerGuidance from './components/CareerGuidance';
 import Feedback from './components/Feedback';
 import './App.css';
 
-// Protected Route component
 function ProtectedRoute({ children }) {
   const { user } = useAuth();
-  return user ? children : <Navigate to="/login" />;
+  if (!user) {
+    return <Navigate to="/login" replace />;
+  }
+  return children;
 }
 
-// Main App content with routing
-function AppContent() {
+function AppRoutes() {
+  const { user } = useAuth();
+
   return (
-    <Router>
-      <div className="app-container">
-        <Sidebar />
-        <div className="content">
-          <Routes>
-            <Route path="/login" element={<Login />} />
-            <Route path="/register" element={<Register />} />
-            <Route path="/" element={<ProtectedRoute><Home /></ProtectedRoute>} />
-            <Route path="/quiz" element={<ProtectedRoute><Quiz /></ProtectedRoute>} />
-            <Route path="/subjects" element={<ProtectedRoute><Subjects /></ProtectedRoute>} />
-            <Route path="/flashcards" element={<ProtectedRoute><Flashcards /></ProtectedRoute>} />
-            <Route path="/progress" element={<ProtectedRoute><Progress /></ProtectedRoute>} />
-            <Route path="/notes" element={<ProtectedRoute><Notes /></ProtectedRoute>} />
-            <Route path="/career-guidance" element={<ProtectedRoute><CareerGuidance /></ProtectedRoute>} />
-            <Route path="/feedback" element={<ProtectedRoute><Feedback /></ProtectedRoute>} />
-          </Routes>
-        </div>
+    <div className="app-container">
+      {user && <Sidebar />}
+      <div className="content">
+        <Routes>
+          <Route path="/login" element={!user ? <Login /> : <Navigate to="/" replace />} />
+          <Route path="/register" element={!user ? <Register /> : <Navigate to="/" replace />} />
+          <Route path="/" element={<ProtectedRoute><Home /></ProtectedRoute>} />
+          <Route path="/quiz" element={<ProtectedRoute><Quiz /></ProtectedRoute>} />
+          <Route path="/subjects" element={<ProtectedRoute><Subjects /></ProtectedRoute>} />
+          <Route path="/flashcards" element={<ProtectedRoute><Flashcards /></ProtectedRoute>} />
+          <Route path="/progress" element={<ProtectedRoute><Progress /></ProtectedRoute>} />
+          <Route path="/notes" element={<ProtectedRoute><Notes /></ProtectedRoute>} />
+          <Route path="/career-guidance" element={<ProtectedRoute><CareerGuidance /></ProtectedRoute>} />
+          <Route path="/feedback" element={<ProtectedRoute><Feedback /></ProtectedRoute>} />
+          <Route path="*" element={<Navigate to="/" replace />} />
+        </Routes>
       </div>
-    </Router>
+    </div>
   );
 }
 
-// Root App component
 function App() {
   return (
     <AuthProvider>
-      <AppContent />
+      <Router>
+        <AppRoutes />
+      </Router>
     </AuthProvider>
   );
 }
