@@ -1,11 +1,11 @@
-import { createContext, useState, useContext, useEffect } from 'react';
+import React from 'react';
 
-const AuthContext = createContext(null);
+const AuthContext = React.createContext(null);
 
 export const AuthProvider = ({ children }) => {
-  const [user, setUser] = useState(null);
+  const [user, setUser] = React.useState(null);
 
-  useEffect(() => {
+  React.useEffect(() => {
     // Check localStorage for user data on initial load
     const storedUser = localStorage.getItem('user');
     if (storedUser) {
@@ -31,7 +31,7 @@ export const AuthProvider = ({ children }) => {
 };
 
 export const useAuth = () => {
-  const context = useContext(AuthContext);
+  const context = React.useContext(AuthContext);
   if (!context) {
     throw new Error('useAuth must be used within an AuthProvider');
   }
