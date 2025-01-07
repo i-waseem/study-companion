@@ -13,12 +13,9 @@ export default defineConfig({
     sourcemap: false, // Disable sourcemaps in production
     minify: 'esbuild', // Use esbuild for faster minification
     rollupOptions: {
-      external: ['react', 'react-dom', 'react-router-dom'],
       output: {
         manualChunks: {
-          vendor: ['react', 'react-dom', 'react-router-dom'],
-          // Group common UI components
-          ui: ['@emotion/react', '@emotion/styled', '@fortawesome/fontawesome-free']
+          'ui-libs': ['@emotion/react', '@emotion/styled', '@fortawesome/fontawesome-free']
         }
       }
     }
