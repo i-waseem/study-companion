@@ -1,39 +1,43 @@
 import React from 'react';
 
-const AuthContext = React.createContext(null);
+const AuthContext = React.createContext();
+AuthContext.displayName = 'AuthContext';
 
-export const AuthProvider = ({ children }) => {
-  const [user, setUser] = React.useState(null);
-
-  React.useEffect(() => {
-    // Check localStorage for user data on initial load
+export function AuthProvider({ children }) {
+  const [user, setUser] = React.useState(() => {
     const storedUser = localStorage.getItem('user');
-    if (storedUser) {
-      setUser(JSON.parse(storedUser));
-    }
-  }, []);
+    return storedUser ? JSON.parse(storedUser) : null;
+  });
 
-  const login = (userData) => {
+  const login = React.useCallback((userData) => {
     setUser(userData);
     localStorage.setItem('user', JSON.stringify(userData));
-  };
+  }, []);
 
-  const logout = () => {
+  const logout = React.useCallback(() => {
     setUser(null);
     localStorage.removeItem('user');
-  };
+  }, []);
 
-  return (
-    <AuthContext.Provider value={{ user, login, logout }}>
-      {children}
-    </AuthContext.Provider>
+  const value = React.useMemo(
+    () => ({
+      user,
+      login,
+      logout,
+    }),
+    [user, login, logout]
   );
-};
 
-export const useAuth = () => {
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
+}
+
+export function useAuth() {
   const context = React.useContext(AuthContext);
-  if (!context) {
-    throw new Error('useAuth must be used within an AuthProvider');
+  if (context === undefined) {
+    throw new Error('useAuth must be used within AuthProvider');
   }
   return context;
-};
+}
+
+// Default export for compatibility
+export default AuthContext;
