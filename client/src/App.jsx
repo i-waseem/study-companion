@@ -16,82 +16,95 @@ import './App.css';
 // Protected Route component
 const ProtectedRoute = ({ children }) => {
   const { user } = useAuth();
-  if (!user) {
-    return <Navigate to="/login" />;
-  }
-  return children;
+  return user ? children : <Navigate to="/login" />;
 };
 
+// Main App content with routing
 function AppContent() {
-  const { user } = useAuth();
-
   return (
-    <div className="app">
-      {user && <Sidebar />}
-      <div className={`main-content ${user ? 'with-sidebar' : ''}`}>
-        <Routes>
-          <Route path="/login" element={!user ? <Login /> : <Navigate to="/" />} />
-          <Route path="/register" element={!user ? <Register /> : <Navigate to="/" />} />
-          
-          <Route path="/" element={
-            <ProtectedRoute>
-              <Home />
-            </ProtectedRoute>
-          } />
-          
-          <Route path="/subjects" element={
-            <ProtectedRoute>
-              <Subjects />
-            </ProtectedRoute>
-          } />
-          
-          <Route path="/flashcards" element={
-            <ProtectedRoute>
-              <Flashcards />
-            </ProtectedRoute>
-          } />
-          
-          <Route path="/quiz" element={
-            <ProtectedRoute>
-              <Quiz />
-            </ProtectedRoute>
-          } />
-          
-          <Route path="/progress" element={
-            <ProtectedRoute>
-              <Progress />
-            </ProtectedRoute>
-          } />
-          
-          <Route path="/notes" element={
-            <ProtectedRoute>
-              <Notes />
-            </ProtectedRoute>
-          } />
-          
-          <Route path="/career" element={
-            <ProtectedRoute>
-              <CareerGuidance />
-            </ProtectedRoute>
-          } />
-          
-          <Route path="/feedback" element={
-            <ProtectedRoute>
-              <Feedback />
-            </ProtectedRoute>
-          } />
-        </Routes>
+    <Router>
+      <div className="app-container">
+        <Sidebar />
+        <div className="content">
+          <Routes>
+            <Route path="/login" element={<Login />} />
+            <Route path="/register" element={<Register />} />
+            <Route
+              path="/"
+              element={
+                <ProtectedRoute>
+                  <Home />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/quiz"
+              element={
+                <ProtectedRoute>
+                  <Quiz />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/subjects"
+              element={
+                <ProtectedRoute>
+                  <Subjects />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/flashcards"
+              element={
+                <ProtectedRoute>
+                  <Flashcards />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/progress"
+              element={
+                <ProtectedRoute>
+                  <Progress />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/notes"
+              element={
+                <ProtectedRoute>
+                  <Notes />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/career-guidance"
+              element={
+                <ProtectedRoute>
+                  <CareerGuidance />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/feedback"
+              element={
+                <ProtectedRoute>
+                  <Feedback />
+                </ProtectedRoute>
+              }
+            />
+          </Routes>
+        </div>
       </div>
-    </div>
+    </Router>
   );
 }
 
+// Root App component
 function App() {
   return (
     <AuthProvider>
-      <Router>
-        <AppContent />
-      </Router>
+      <AppContent />
     </AuthProvider>
   );
 }
