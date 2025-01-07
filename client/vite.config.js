@@ -3,9 +3,7 @@ import react from '@vitejs/plugin-react'
 
 // https://vitejs.dev/config/
 export default defineConfig({
-  plugins: [react({
-    jsxRuntime: 'classic'
-  })],
+  plugins: [react()],
   server: {
     port: 5173,
     host: true
@@ -13,22 +11,23 @@ export default defineConfig({
   build: {
     outDir: 'dist',
     sourcemap: true,
-    commonjsOptions: {
-      include: []
-    },
     rollupOptions: {
+      external: ['react', 'react-dom', 'react-router-dom'],
       output: {
-        manualChunks: {
-          'react-vendor': ['react', 'react-dom', 'react-router-dom']
+        globals: {
+          react: 'React',
+          'react-dom': 'ReactDOM',
+          'react-router-dom': 'ReactRouterDOM'
         }
       }
     }
   },
-  optimizeDeps: {
-    include: ['react', 'react-dom', 'react-router-dom'],
-    esbuildOptions: {
-      target: 'es2020'
-    }
+  define: {
+    'process.env': {}
   },
-  base: '/'
+  resolve: {
+    alias: {
+      '@': '/src'
+    }
+  }
 })
