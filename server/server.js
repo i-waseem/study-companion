@@ -11,10 +11,15 @@ const app = express();
 
 // Middleware
 app.use(cors({
-  origin: ['http://localhost:5173', 'https://study-companion-app.netlify.app'],
+  origin: ['http://localhost:5173', 'https://i-waseem.github.io', 'https://study-companion-app.netlify.app'],
   credentials: true
 }));
 app.use(express.json());
+
+// Health check endpoint
+app.get('/api/health', (req, res) => {
+  res.status(200).json({ status: 'healthy' });
+});
 
 // Request logging middleware
 app.use((req, res, next) => {
