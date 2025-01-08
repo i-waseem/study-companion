@@ -4,14 +4,15 @@ import react from '@vitejs/plugin-react'
 // https://vitejs.dev/config/
 export default defineConfig({
   plugins: [react()],
+  base: '/study-companion/',  
   server: {
     port: 5173,
     host: true
   },
   build: {
     outDir: 'dist',
-    sourcemap: false, // Disable sourcemaps in production
-    minify: 'esbuild', // Use esbuild for faster minification
+    sourcemap: false, 
+    minify: 'esbuild', 
     rollupOptions: {
       output: {
         manualChunks: {
