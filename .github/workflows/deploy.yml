@@ -3,6 +3,12 @@ name: Deploy to GitHub Pages
 on:
   push:
     branches: [ main ]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pages: write
+  id-token: write
 
 jobs:
   build-and-deploy:
@@ -21,7 +27,7 @@ jobs:
       - name: Install and Build
         working-directory: ./client
         run: |
-          npm install
+          npm ci
           npm run build
 
       - name: Deploy to GitHub Pages
@@ -29,3 +35,4 @@ jobs:
         with:
           folder: client/dist
           branch: gh-pages
+          clean: true
