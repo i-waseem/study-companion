@@ -1,7 +1,6 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext.jsx';
-import axios from 'axios';
 import './Auth.css';
 
 function Login() {
@@ -14,27 +13,45 @@ function Login() {
   const { login } = useAuth();
 
   const handleChange = (e) => {
-    setFormData({
-      ...formData,
-      [e.target.name]: e.target.value
-    });
+    const { name, value } = e.target;
+    setFormData(prev => ({
+      ...prev,
+      [name]: value
+    }));
+    // Clear error when user types
+    if (error) setError('');
   };
 
   const handleSubmit = async (e) => {
-    e.preventDefault();
+    e.preventDefault(); // Prevent form submission
+    setError(''); // Clear any existing errors
+
+    const { email, password } = formData;
+
+    // Basic validation
+    if (!email || !password) {
+      setError('Please enter both email and password');
+      return;
+    }
+
     try {
-      const response = await axios.post('http://localhost:5000/api/auth/login', formData);
-      login(response.data.user);
-      navigate('/');
+      console.log('Attempting login with:', { email, password: '***' });
+      
+      // Call login function from AuthContext with actual values
+      await login(formData.email, formData.password);
+      
+      console.log('Login successful, redirecting to home');
+      navigate('/', { replace: true }); // Use replace to prevent back navigation
     } catch (err) {
-      setError(err.response?.data?.message || 'An error occurred');
+      console.error('Login error:', err);
+      setError(err.response?.data?.message || 'Invalid email or password');
     }
   };
 
   return (
     <div className="auth-container">
-      <h2>Welcome Back!</h2>
-      <p className="auth-subtitle">Login to continue your learning journey</p>
+      <h2>Welcome Back</h2>
+      <p className="auth-subtitle">Continue your learning journey</p>
       
       {error && <div className="error-message">{error}</div>}
       
@@ -48,6 +65,8 @@ function Login() {
             value={formData.email}
             onChange={handleChange}
             required
+            placeholder="Enter your email"
+            autoComplete="email"
           />
         </div>
 
@@ -60,6 +79,8 @@ function Login() {
             value={formData.password}
             onChange={handleChange}
             required
+            placeholder="Enter your password"
+            autoComplete="current-password"
           />
         </div>
 
