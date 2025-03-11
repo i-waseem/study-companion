@@ -7,6 +7,14 @@ require('dotenv').config();
 
 const app = express();
 
+// Log environment variables (excluding sensitive data)
+console.log('Environment check:', {
+  port: process.env.PORT,
+  hasGeminiKey: !!process.env.GEMINI_API_KEY,
+  hasMongoUri: !!process.env.MONGODB_URI,
+  nodeEnv: process.env.NODE_ENV
+});
+
 // CORS configuration - must be before other middleware
 app.use(cors({
   origin: 'http://localhost:5173',
