@@ -1,33 +1,49 @@
 import axios from 'axios';
-
-const API_URL = 'http://localhost:5000/api/auth';
+import api from '../api/config';
 
 class AuthService {
   async register(username, email, password) {
-    const response = await axios.post(`${API_URL}/register`, {
-      username,
-      email,
-      password
-    });
-    if (response.data.token) {
-      localStorage.setItem('user', JSON.stringify(response.data));
+    try {
+      console.log('Attempting registration with:', { username, email });
+      const response = await api.post('/auth/register', {
+        username,
+        email,
+        password
+      });
+      
+      if (response.data.token) {
+        localStorage.setItem('user', JSON.stringify(response.data.user));
+        localStorage.setItem('token', response.data.token);
+      }
+      return response.data;
+    } catch (error) {
+      console.error('Registration error:', error.response?.data || error.message);
+      throw error;
     }
-    return response.data;
   }
 
   async login(email, password) {
-    const response = await axios.post(`${API_URL}/login`, {
-      email,
-      password
-    });
-    if (response.data.token) {
-      localStorage.setItem('user', JSON.stringify(response.data));
+    try {
+      console.log('Attempting login with:', { email });
+      const response = await api.post('/auth/login', {
+        email,
+        password
+      });
+      
+      if (response.data.token) {
+        localStorage.setItem('user', JSON.stringify(response.data.user));
+        localStorage.setItem('token', response.data.token);
+      }
+      return response.data;
+    } catch (error) {
+      console.error('Login error:', error.response?.data || error.message);
+      throw error;
     }
-    return response.data;
   }
 
   logout() {
     localStorage.removeItem('user');
+    localStorage.removeItem('token');
   }
 
   getCurrentUser() {
@@ -35,17 +51,12 @@ class AuthService {
     return user ? JSON.parse(user) : null;
   }
 
-  isAuthenticated() {
-    const user = this.getCurrentUser();
-    return !!user && !!user.token;
+  getToken() {
+    return localStorage.getItem('token');
   }
 
-  getAuthHeader() {
-    const user = this.getCurrentUser();
-    if (user && user.token) {
-      return { Authorization: `Bearer ${user.token}` };
-    }
-    return {};
+  isLoggedIn() {
+    return !!this.getToken();
   }
 }
 

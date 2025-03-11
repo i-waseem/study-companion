@@ -1,185 +1,355 @@
-import { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { useParams, useNavigate } from 'react-router-dom';
+import { Card, Button, Radio, Space, Typography, Progress, Result, Spin, Alert, Input, Tag } from 'antd';
+import { CheckCircleOutlined, CloseCircleOutlined, InfoCircleOutlined, ReloadOutlined } from '@ant-design/icons';
+import { generateQuiz as generateQuizAPI } from '../api/quiz';
 import './Quiz.css';
 
-const API_KEY = import.meta.env.VITE_GEMINI_API_KEY;
-const API_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent';
+const { Title, Text, Paragraph } = Typography;
+const { TextArea } = Input;
 
 function Quiz() {
-  const [selectedSubject, setSelectedSubject] = useState("");
-  const [selectedCourse, setSelectedCourse] = useState("");
-  const [selectedTopic, setSelectedTopic] = useState("");
-  const [selectedSubtopic, setSelectedSubtopic] = useState("");
+  const navigate = useNavigate();
+  const { subject, topic } = useParams();
+  
   const [loading, setLoading] = useState(false);
   const [quiz, setQuiz] = useState(null);
   const [currentQuestion, setCurrentQuestion] = useState(0);
-  const [score, setScore] = useState(0);
-  const [showResults, setShowResults] = useState(false);
   const [answers, setAnswers] = useState([]);
+  const [showExplanation, setShowExplanation] = useState(false);
+  const [quizComplete, setQuizComplete] = useState(false);
+  const [error, setError] = useState(null);
+  const [score, setScore] = useState(0);
+
+  // For multiple choice and true/false
+  const [selectedAnswer, setSelectedAnswer] = useState(null);
+  // For short answer
+  const [shortAnswer, setShortAnswer] = useState('');
+
+  useEffect(() => {
+    if (subject && topic) {
+      generateQuiz();
+    }
+  }, [subject, topic]);
 
   const generateQuiz = async () => {
-    if (!selectedSubtopic) return;
-
     setLoading(true);
+    setError(null);
+    
     try {
-      const prompt = `Create a multiple choice quiz about ${selectedSubtopic} in ${selectedTopic} (${selectedCourse} - ${selectedSubject}). Return ONLY a JSON object in this format, no other text:
-{
-  "questions": [
-    {
-      "question": "What is X?",
-      "options": ["A", "B", "C", "D"],
-      "correctAnswer": 0
-    }
-  ]
-}`;
-
-      const response = await fetch(`${API_URL}?key=${API_KEY}`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          contents: [{
-            parts: [{
-              text: prompt
-            }]
-          }]
-        })
-      });
-
-      const data = await response.json();
-      const quizText = data.candidates[0].content.parts[0].text;
+      const data = await generateQuizAPI(subject, topic);
       
-      // Extract JSON from response
-      const jsonStart = quizText.indexOf('{');
-      const jsonEnd = quizText.lastIndexOf('}') + 1;
-      const quizData = JSON.parse(quizText.slice(jsonStart, jsonEnd));
-
-      setQuiz(quizData);
-      setCurrentQuestion(0);
-      setScore(0);
-      setShowResults(false);
-      setAnswers(new Array(quizData.questions.length).fill(null));
+      // Check if we got fallback questions
+      if (data.metadata?.isFailback) {
+        setError({
+          type: 'warning',
+          message: 'Using backup questions due to an error.',
+          description: data.metadata.error
+        });
+      }
+      
+      setQuiz(data);
+      resetQuizState();
     } catch (error) {
-      console.error('Error:', error);
-      alert('Failed to generate quiz. Please try again.');
+      setError({
+        type: 'error',
+        message: 'Failed to generate quiz',
+        description: error.message
+      });
     } finally {
       setLoading(false);
     }
   };
 
-  const handleAnswer = (answerIndex) => {
-    const newAnswers = [...answers];
-    newAnswers[currentQuestion] = answerIndex;
-    setAnswers(newAnswers);
+  const resetQuizState = () => {
+    setCurrentQuestion(0);
+    setSelectedAnswer(null);
+    setShortAnswer('');
+    setShowExplanation(false);
+    setAnswers([]);
+    setQuizComplete(false);
+    setScore(0);
+  };
 
-    if (answerIndex === quiz.questions[currentQuestion].correctAnswer) {
+  const handleAnswerSubmit = () => {
+    const currentQ = quiz.questions[currentQuestion];
+    let isCorrect = false;
+    let answer = null;
+
+    switch (currentQ.type) {
+      case 'multiple_choice':
+        isCorrect = selectedAnswer === currentQ.correctAnswer;
+        answer = selectedAnswer;
+        break;
+      case 'true_false':
+        isCorrect = selectedAnswer === (currentQ.isTrue ? 1 : 0);
+        answer = selectedAnswer;
+        break;
+      case 'short_answer':
+        answer = shortAnswer;
+        // For short answer, we'll check if they've addressed the key points
+        const keyPointsAddressed = currentQ.keyPoints.filter(point =>
+          shortAnswer.toLowerCase().includes(point.toLowerCase())
+        ).length;
+        isCorrect = keyPointsAddressed >= (currentQ.keyPoints.length * 0.7); // 70% of key points
+        break;
+      default:
+        console.error('Unknown question type:', currentQ.type);
+        return;
+    }
+
+    // Update answers and score
+    setAnswers([...answers, { 
+      questionIndex: currentQuestion,
+      answer,
+      isCorrect,
+      type: currentQ.type
+    }]);
+    
+    if (isCorrect) {
       setScore(score + 1);
     }
+    
+    setShowExplanation(true);
+  };
 
-    if (currentQuestion + 1 < quiz.questions.length) {
+  const handleNextQuestion = () => {
+    if (currentQuestion < quiz.questions.length - 1) {
       setCurrentQuestion(currentQuestion + 1);
+      setSelectedAnswer(null);
+      setShortAnswer('');
+      setShowExplanation(false);
     } else {
-      setShowResults(true);
+      setQuizComplete(true);
     }
   };
 
-  const resetQuiz = () => {
-    setQuiz(null);
-    setCurrentQuestion(0);
-    setScore(0);
-    setShowResults(false);
-    setAnswers([]);
+  const renderDifficultyTag = (difficulty) => {
+    const colors = {
+      easy: 'success',
+      medium: 'warning',
+      hard: 'error'
+    };
+    return (
+      <Tag color={colors[difficulty]} style={{ marginBottom: 16 }}>
+        {difficulty.charAt(0).toUpperCase() + difficulty.slice(1)}
+      </Tag>
+    );
   };
+
+  const renderQuestion = () => {
+    const question = quiz.questions[currentQuestion];
+    
+    return (
+      <Card className="question-card">
+        {renderDifficultyTag(question.difficulty)}
+        
+        <div className="question-header">
+          <Progress 
+            percent={((currentQuestion + 1) / quiz.questions.length) * 100} 
+            size="small"
+            status="active"
+          />
+          <Text type="secondary">
+            Question {currentQuestion + 1} of {quiz.questions.length}
+          </Text>
+        </div>
+
+        {question.type === 'multiple_choice' && (
+          <div className="question-content">
+            <Title level={4}>{question.question}</Title>
+            <Radio.Group 
+              onChange={e => setSelectedAnswer(e.target.value)}
+              value={selectedAnswer}
+            >
+              <Space direction="vertical" style={{ width: '100%' }}>
+                {question.options.map((option, index) => (
+                  <Radio key={index} value={index} className="quiz-option">
+                    {option}
+                  </Radio>
+                ))}
+              </Space>
+            </Radio.Group>
+          </div>
+        )}
+
+        {question.type === 'true_false' && (
+          <div className="question-content">
+            <Title level={4}>{question.statement}</Title>
+            <Radio.Group 
+              onChange={e => setSelectedAnswer(e.target.value)}
+              value={selectedAnswer}
+            >
+              <Space direction="vertical" style={{ width: '100%' }}>
+                <Radio value={1} className="quiz-option">True</Radio>
+                <Radio value={0} className="quiz-option">False</Radio>
+              </Space>
+            </Radio.Group>
+          </div>
+        )}
+
+        {question.type === 'short_answer' && (
+          <div className="question-content">
+            <Title level={4}>{question.question}</Title>
+            <TextArea
+              value={shortAnswer}
+              onChange={e => setShortAnswer(e.target.value)}
+              placeholder="Type your answer here..."
+              autoSize={{ minRows: 3, maxRows: 6 }}
+              className="quiz-short-answer"
+            />
+            <div className="key-points">
+              <Text type="secondary">
+                <InfoCircleOutlined /> Your answer should address these key points:
+              </Text>
+              <ul>
+                {question.keyPoints.map((point, index) => (
+                  <li key={index}>{point}</li>
+                ))}
+              </ul>
+            </div>
+          </div>
+        )}
+
+        <div className="question-actions">
+          <Button 
+            type="primary" 
+            onClick={handleAnswerSubmit}
+            disabled={
+              (question.type === 'short_answer' && !shortAnswer.trim()) ||
+              (question.type !== 'short_answer' && selectedAnswer === null) ||
+              showExplanation
+            }
+          >
+            Submit Answer
+          </Button>
+        </div>
+      </Card>
+    );
+  };
+
+  const renderExplanation = () => {
+    const question = quiz.questions[currentQuestion];
+    const answer = answers[currentQuestion];
+
+    if (!showExplanation) return null;
+
+    return (
+      <div className="explanation-section">
+        <Alert
+          type={answer.isCorrect ? 'success' : 'error'}
+          message={answer.isCorrect ? 'Correct!' : 'Incorrect'}
+          description={
+            <div>
+              <Paragraph>{question.explanation}</Paragraph>
+              {question.type === 'short_answer' && (
+                <div className="model-answer">
+                  <Text strong>Model Answer:</Text>
+                  <Paragraph>{question.modelAnswer}</Paragraph>
+                </div>
+              )}
+            </div>
+          }
+          showIcon
+        />
+        <Button 
+          type="primary" 
+          onClick={handleNextQuestion}
+          style={{ marginTop: 16 }}
+        >
+          {currentQuestion < quiz.questions.length - 1 ? 'Next Question' : 'Finish Quiz'}
+        </Button>
+      </div>
+    );
+  };
+
+  const renderQuizComplete = () => {
+    const finalScore = (score / quiz.questions.length) * 100;
+    
+    return (
+      <Result
+        status={finalScore >= 70 ? 'success' : 'warning'}
+        title={`Quiz Complete! Score: ${finalScore.toFixed(1)}%`}
+        subTitle={
+          <div>
+            <Text>
+              You got {score} out of {quiz.questions.length} questions correct.
+            </Text>
+            {quiz.metadata && (
+              <div style={{ marginTop: 16 }}>
+                <Text type="secondary">
+                  Subject: {quiz.metadata.subject} | Topic: {quiz.metadata.topic}
+                </Text>
+              </div>
+            )}
+          </div>
+        }
+        extra={[
+          <Button 
+            type="primary" 
+            key="retry" 
+            icon={<ReloadOutlined />}
+            onClick={generateQuiz}
+          >
+            Try Another Quiz
+          </Button>,
+          <Button 
+            key="back" 
+            onClick={() => navigate('/dashboard')}
+          >
+            Back to Dashboard
+          </Button>
+        ]}
+      />
+    );
+  };
+
+  if (loading) {
+    return (
+      <div className="quiz-loading">
+        <Spin size="large" />
+        <Text>Generating your quiz...</Text>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <Alert
+        type={error.type || 'error'}
+        message={error.message}
+        description={error.description}
+        action={
+          <Button type="primary" onClick={generateQuiz}>
+            Try Again
+          </Button>
+        }
+      />
+    );
+  }
+
+  if (!quiz) {
+    return (
+      <Alert
+        type="warning"
+        message="No quiz available"
+        description="Please select a subject and topic to start a quiz."
+        action={
+          <Button type="primary" onClick={() => navigate('/dashboard')}>
+            Go to Dashboard
+          </Button>
+        }
+      />
+    );
+  }
 
   return (
     <div className="quiz-container">
-      <div className="quiz-selection">
-        <div className="selection-group">
-          <label>Subject:</label>
-          <select value={selectedSubject} onChange={(e) => setSelectedSubject(e.target.value)}>
-            <option value="">Select Subject</option>
-            <option value="Computer Science">Computer Science</option>
-            <option value="Mathematics">Mathematics</option>
-          </select>
-        </div>
-
-        {selectedSubject && (
-          <div className="selection-group">
-            <label>Course:</label>
-            <select value={selectedCourse} onChange={(e) => setSelectedCourse(e.target.value)}>
-              <option value="">Select Course</option>
-              <option value="Programming Fundamentals">Programming Fundamentals</option>
-              <option value="Data Structures">Data Structures</option>
-            </select>
-          </div>
-        )}
-
-        {selectedCourse && (
-          <div className="selection-group">
-            <label>Topic:</label>
-            <select value={selectedTopic} onChange={(e) => setSelectedTopic(e.target.value)}>
-              <option value="">Select Topic</option>
-              <option value="Python Basics">Python Basics</option>
-              <option value="Object-Oriented Programming">Object-Oriented Programming</option>
-            </select>
-          </div>
-        )}
-
-        {selectedTopic && (
-          <div className="selection-group">
-            <label>Subtopic:</label>
-            <select value={selectedSubtopic} onChange={(e) => setSelectedSubtopic(e.target.value)}>
-              <option value="">Select Subtopic</option>
-              <option value="Variables">Variables</option>
-              <option value="Control Flow">Control Flow</option>
-              <option value="Functions">Functions</option>
-            </select>
-          </div>
-        )}
-
-        {selectedSubtopic && !quiz && (
-          <button onClick={generateQuiz} disabled={loading} className="generate-button">
-            {loading ? 'Generating Quiz...' : 'Generate Quiz'}
-          </button>
-        )}
-      </div>
-
-      {quiz && !showResults && (
-        <div className="quiz-content">
-          <h2>Question {currentQuestion + 1} of {quiz.questions.length}</h2>
-          <div className="question-card">
-            <p className="question">{quiz.questions[currentQuestion].question}</p>
-            <div className="options">
-              {quiz.questions[currentQuestion].options.map((option, index) => (
-                <button
-                  key={index}
-                  onClick={() => handleAnswer(index)}
-                  className={`option-button ${answers[currentQuestion] === index ? 'selected' : ''}`}
-                >
-                  {option}
-                </button>
-              ))}
-            </div>
-          </div>
-        </div>
-      )}
-
-      {showResults && (
-        <div className="quiz-results">
-          <h2>Quiz Results</h2>
-          <div className="score-card">
-            <h3>Your Score</h3>
-            <div className="score">
-              {score} / {quiz.questions.length}
-            </div>
-            <div className="score-percentage">
-              {Math.round((score / quiz.questions.length) * 100)}%
-            </div>
-          </div>
-          <button onClick={resetQuiz} className="retry-button">
-            Try Another Quiz
-          </button>
-        </div>
+      {quizComplete ? renderQuizComplete() : (
+        <>
+          {renderQuestion()}
+          {renderExplanation()}
+        </>
       )}
     </div>
   );

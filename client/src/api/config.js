@@ -1,69 +1,51 @@
 import axios from 'axios';
 
-// Create axios instance with default config
 const api = axios.create({
   baseURL: 'http://localhost:5000/api',
   headers: {
-    'Content-Type': 'application/json',
-    'Accept': 'application/json'
+    'Content-Type': 'application/json'
   },
-  withCredentials: true,
-  transformRequest: [(data, headers) => {
-    // Log the request data before transformation
-    console.log('Request data before transform:', data);
-    return JSON.stringify(data);
-  }],
-  transformResponse: [(data) => {
-    // Log the response data after transformation
-    console.log('Response data after transform:', data);
-    try {
-      return JSON.parse(data);
-    } catch (error) {
-      return data;
-    }
-  }]
+  withCredentials: true
 });
 
-// Request interceptor
+// Add a request interceptor
 api.interceptors.request.use(
   (config) => {
-    // Log request details
-    console.log(`[API Request] ${config.method?.toUpperCase()} ${config.url}`, {
-      data: config.data,
+    console.log('Making request:', {
+      url: config.url,
+      method: config.method,
+      withCredentials: config.withCredentials,
       headers: config.headers
     });
     return config;
   },
   (error) => {
-    console.error('[API Request Error]', error);
+    console.error('Request error:', error);
     return Promise.reject(error);
   }
 );
 
-// Response interceptor
+// Add a response interceptor
 api.interceptors.response.use(
   (response) => {
-    // Log response details
-    console.log(`[API Response] ${response.config.method?.toUpperCase()} ${response.config.url}`, {
+    console.log('Response:', {
       status: response.status,
+      headers: response.headers,
       data: response.data
     });
     return response;
   },
   (error) => {
-    // Log error details
-    console.error('[API Response Error]', {
-      url: error.config?.url,
-      method: error.config?.method,
+    console.error('Response error:', {
       status: error.response?.status,
       data: error.response?.data,
       message: error.message
     });
 
-    // Handle specific error cases
+    // Handle 401 Unauthorized
     if (error.response?.status === 401) {
-      // Unauthorized - clear user data
       localStorage.removeItem('user');
+      window.location.href = '/login';
     }
 
     return Promise.reject(error);

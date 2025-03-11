@@ -1,142 +1,139 @@
 import React, { useState } from 'react';
+import { Card, Row, Col, Typography, Space, Modal, Button, List, Divider } from 'antd';
+import { useNavigate } from 'react-router-dom';
+import { BookOutlined, CodeOutlined, LineChartOutlined, RightOutlined } from '@ant-design/icons';
+import { subjects } from '../data/subjects';
 import './Subjects.css';
 
-function Subjects() {
-  const [activeGrade, setActiveGrade] = useState('primary');
+const { Title, Text } = Typography;
 
-  const gradeCategories = {
-    primary: {
-      label: 'Primary (Grade 1-5)',
-      subjects: [
-        {
-          id: 1,
-          name: 'Mathematics',
-          progress: 75,
-          topics: ['Numbers', 'Basic Algebra', 'Geometry', 'Fractions']
-        },
-        {
-          id: 2,
-          name: 'Science',
-          progress: 60,
-          topics: ['Living Things', 'Matter', 'Energy', 'Earth and Space']
-        },
-        {
-          id: 3,
-          name: 'English',
-          progress: 85,
-          topics: ['Grammar', 'Reading', 'Writing', 'Vocabulary']
-        }
-      ]
-    },
-    middle: {
-      label: 'Middle School (Grade 6-8)',
-      subjects: [
-        {
-          id: 4,
-          name: 'Mathematics',
-          progress: 70,
-          topics: ['Algebra', 'Geometry', 'Statistics', 'Ratios']
-        },
-        {
-          id: 5,
-          name: 'Science',
-          progress: 65,
-          topics: ['Biology', 'Chemistry', 'Physics', 'Earth Science']
-        },
-        {
-          id: 6,
-          name: 'Computer Science',
-          progress: 80,
-          topics: ['Basic Programming', 'Web Design', 'Digital Skills']
-        }
-      ]
-    },
-    olevel: {
-      label: 'O Level',
-      subjects: [
-        {
-          id: 7,
-          name: 'Mathematics',
-          progress: 55,
-          topics: ['Functions', 'Trigonometry', 'Vectors', 'Probability']
-        },
-        {
-          id: 8,
-          name: 'Physics',
-          progress: 60,
-          topics: ['Mechanics', 'Waves', 'Electricity', 'Nuclear Physics']
-        },
-        {
-          id: 9,
-          name: 'Computer Science',
-          progress: 75,
-          topics: ['Programming', 'Databases', 'Networks', 'System Architecture']
-        }
-      ]
-    },
-    alevel: {
-      label: 'A Level',
-      subjects: [
-        {
-          id: 10,
-          name: 'Mathematics',
-          progress: 45,
-          topics: ['Pure Mathematics', 'Statistics', 'Mechanics']
-        },
-        {
-          id: 11,
-          name: 'Physics',
-          progress: 50,
-          topics: ['Fields', 'Quantum Physics', 'Thermodynamics']
-        },
-        {
-          id: 12,
-          name: 'Computer Science',
-          progress: 65,
-          topics: ['Data Structures', 'Algorithms', 'Object-Oriented Programming']
-        }
-      ]
+const iconMap = {
+  BookOutlined: <BookOutlined />,
+  CodeOutlined: <CodeOutlined />,
+  LineChartOutlined: <LineChartOutlined />
+};
+
+function Subjects() {
+  const navigate = useNavigate();
+  const [selectedSubject, setSelectedSubject] = useState(null);
+  const [selectedTopic, setSelectedTopic] = useState(null);
+  const [isModalVisible, setIsModalVisible] = useState(false);
+
+  const handleSubjectClick = (subject) => {
+    setSelectedSubject(subject);
+    setIsModalVisible(true);
+  };
+
+  const handleTopicSelect = (topic) => {
+    setSelectedTopic(topic);
+  };
+
+  const handleStudyModeSelect = (mode) => {
+    if (!selectedTopic) {
+      return;
     }
+
+    const path = `/${mode}/${selectedSubject.id}/${selectedTopic.id}`;
+    navigate(path);
+    setIsModalVisible(false);
+    setSelectedSubject(null);
+    setSelectedTopic(null);
   };
 
   return (
-    <div className="subjects">
-      <h1>My Subjects</h1>
-      
-      <div className="grade-tabs">
-        {Object.entries(gradeCategories).map(([key, value]) => (
-          <button
-            key={key}
-            className={`grade-tab ${activeGrade === key ? 'active' : ''}`}
-            onClick={() => setActiveGrade(key)}
-          >
-            {value.label}
-          </button>
-        ))}
-      </div>
+    <div className="subjects-container">
+      <Space direction="vertical" size="large" style={{ width: '100%' }}>
+        <div className="subjects-header">
+          <Title level={2}>O Level Subjects</Title>
+          <Text type="secondary">Select a subject to begin studying</Text>
+        </div>
 
-      <div className="subjects-grid">
-        {gradeCategories[activeGrade].subjects.map(subject => (
-          <div key={subject.id} className="subject-card">
-            <h2>{subject.name}</h2>
-            <div className="progress-bar">
-              <div 
-                className="progress-fill"
-                style={{ width: `${subject.progress}%` }}
-              />
-            </div>
-            <p className="progress-text">{subject.progress}% Complete</p>
-            <div className="topics">
-              <h3>Topics</h3>
-              <ul>
-                {subject.topics.map((topic, index) => (
-                  <li key={index}>{topic}</li>
-                ))}
-              </ul>
+        <Row gutter={[24, 24]}>
+          {subjects.map(subject => (
+            <Col xs={24} sm={12} md={8} key={subject.id}>
+              <Card
+                className="subject-card"
+                hoverable
+                onClick={() => handleSubjectClick(subject)}
+                style={{ borderTop: `3px solid ${subject.color}` }}
+              >
+                <div className="subject-icon" style={{ color: subject.color }}>
+                  {iconMap[subject.icon]}
+                </div>
+                <Title level={3}>{subject.name}</Title>
+                <Text type="secondary">{subject.description}</Text>
+                
+                <div className="topics-preview">
+                  <Title level={5}>Key Topics:</Title>
+                  <ul>
+                    {subject.topics.slice(0, 3).map(topic => (
+                      <li key={topic.id}>{topic.name}</li>
+                    ))}
+                  </ul>
+                </div>
+              </Card>
+            </Col>
+          ))}
+        </Row>
+      </Space>
+
+      <Modal
+        title={selectedSubject?.name}
+        open={isModalVisible}
+        onCancel={() => {
+          setIsModalVisible(false);
+          setSelectedSubject(null);
+          setSelectedTopic(null);
+        }}
+        footer={null}
+        width={700}
+      >
+        {selectedSubject && (
+          <div className="topic-selection">
+            <List
+              dataSource={selectedSubject.topics}
+              renderItem={topic => (
+                <List.Item
+                  className={`topic-item ${selectedTopic?.id === topic.id ? 'selected' : ''}`}
+                  onClick={() => handleTopicSelect(topic)}
+                >
+                  <div className="topic-content">
+                    <Title level={4}>{topic.name}</Title>
+                    <ul className="subtopics-list">
+                      {topic.subtopics.map((subtopic, index) => (
+                        <li key={index}>{subtopic}</li>
+                      ))}
+                    </ul>
+                  </div>
+                  <RightOutlined />
+                </List.Item>
+              )}
+            />
+
+            <Divider />
+
+            <div className="study-mode-selection">
+              <Title level={4}>Choose Study Mode</Title>
+              <Space>
+                <Button
+                  type="primary"
+                  disabled={!selectedTopic}
+                  onClick={() => handleStudyModeSelect('quiz')}
+                >
+                  Take Quiz
+                </Button>
+                <Button
+                  type="primary"
+                  disabled={!selectedTopic}
+                  onClick={() => handleStudyModeSelect('flashcards')}
+                >
+                  Study Flashcards
+                </Button>
+              </Space>
             </div>
           </div>
-        ))}
-      </div>
+        )}
+      </Modal>
     </div>
   );
 }

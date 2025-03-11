@@ -1,10 +1,11 @@
-import * as React from 'react';
+import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import Sidebar from './components/Sidebar';
 import Login from './components/Login';
 import Register from './components/Register';
 import Quiz from './components/Quiz';
+import SubjectSelection from './components/SubjectSelection';
 import Home from './components/Home';
 import Subjects from './components/Subjects';
 import Flashcards from './components/Flashcards';
@@ -12,6 +13,7 @@ import Progress from './components/Progress';
 import Notes from './components/Notes';
 import CareerGuidance from './components/CareerGuidance';
 import Feedback from './components/Feedback';
+import ProfileSettings from './components/ProfileSettings';
 import './App.css';
 
 function ProtectedRoute({ children }) {
@@ -28,19 +30,60 @@ function AppRoutes() {
   return (
     <div className="app-container">
       {user && <Sidebar />}
-      <div className="content">
+      <div className="main-content">
         <Routes>
-          <Route path="/login" element={!user ? <Login /> : <Navigate to="/" replace />} />
-          <Route path="/register" element={!user ? <Register /> : <Navigate to="/" replace />} />
-          <Route path="/" element={<ProtectedRoute><Home /></ProtectedRoute>} />
-          <Route path="/quiz" element={<ProtectedRoute><Quiz /></ProtectedRoute>} />
-          <Route path="/subjects" element={<ProtectedRoute><Subjects /></ProtectedRoute>} />
-          <Route path="/flashcards" element={<ProtectedRoute><Flashcards /></ProtectedRoute>} />
-          <Route path="/progress" element={<ProtectedRoute><Progress /></ProtectedRoute>} />
-          <Route path="/notes" element={<ProtectedRoute><Notes /></ProtectedRoute>} />
-          <Route path="/career-guidance" element={<ProtectedRoute><CareerGuidance /></ProtectedRoute>} />
-          <Route path="/feedback" element={<ProtectedRoute><Feedback /></ProtectedRoute>} />
-          <Route path="*" element={<Navigate to="/" replace />} />
+          <Route path="/login" element={<Login />} />
+          <Route path="/register" element={<Register />} />
+          <Route path="/" element={
+            <ProtectedRoute>
+              <Home />
+            </ProtectedRoute>
+          } />
+          <Route path="/quiz" element={
+            <ProtectedRoute>
+              <SubjectSelection />
+            </ProtectedRoute>
+          } />
+          <Route path="/quiz/:subject/:topic" element={
+            <ProtectedRoute>
+              <Quiz />
+            </ProtectedRoute>
+          } />
+          <Route path="/subjects" element={
+            <ProtectedRoute>
+              <Subjects />
+            </ProtectedRoute>
+          } />
+          <Route path="/flashcards" element={
+            <ProtectedRoute>
+              <Flashcards />
+            </ProtectedRoute>
+          } />
+          <Route path="/progress" element={
+            <ProtectedRoute>
+              <Progress />
+            </ProtectedRoute>
+          } />
+          <Route path="/notes" element={
+            <ProtectedRoute>
+              <Notes />
+            </ProtectedRoute>
+          } />
+          <Route path="/career-guidance" element={
+            <ProtectedRoute>
+              <CareerGuidance />
+            </ProtectedRoute>
+          } />
+          <Route path="/feedback" element={
+            <ProtectedRoute>
+              <Feedback />
+            </ProtectedRoute>
+          } />
+          <Route path="/profile-settings" element={
+            <ProtectedRoute>
+              <ProfileSettings />
+            </ProtectedRoute>
+          } />
         </Routes>
       </div>
     </div>

@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext.jsx';
-import axios from 'axios';
+import api from '../api/config';
 import './Auth.css';
 
 function Register() {
@@ -13,34 +13,52 @@ function Register() {
   });
   const [error, setError] = useState('');
   const navigate = useNavigate();
-  const { login } = useAuth();
+  const { register } = useAuth();
 
   const handleChange = (e) => {
-    setFormData({
-      ...formData,
-      [e.target.name]: e.target.value
-    });
+    const { name, value } = e.target;
+    setFormData(prev => ({
+      ...prev,
+      [name]: value
+    }));
+    // Clear error when user types
+    if (error) setError('');
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    setError(''); // Clear any existing errors
     
+    // Validate passwords match
     if (formData.password !== formData.confirmPassword) {
       setError('Passwords do not match');
       return;
     }
 
+    // Validate password length
+    if (formData.password.length < 6) {
+      setError('Password must be at least 6 characters long');
+      return;
+    }
+
     try {
-      const response = await axios.post('http://localhost:5000/api/auth/register', {
+      console.log('Attempting registration with:', {
         username: formData.username,
-        email: formData.email,
-        password: formData.password
+        email: formData.email
       });
+
+      await register(
+        formData.username,
+        formData.email,
+        formData.password
+      );
       
-      login(response.data.user);
-      navigate('/');
+      console.log('Registration successful, redirecting to login');
+      // After successful registration, redirect to login
+      navigate('/login');
     } catch (err) {
-      setError(err.response?.data?.message || 'An error occurred');
+      console.error('Registration error:', err);
+      setError(err.response?.data?.message || 'An error occurred during registration');
     }
   };
 
@@ -61,6 +79,8 @@ function Register() {
             value={formData.username}
             onChange={handleChange}
             required
+            placeholder="Choose a username"
+            minLength={3}
           />
         </div>
 
@@ -73,6 +93,7 @@ function Register() {
             value={formData.email}
             onChange={handleChange}
             required
+            placeholder="Enter your email"
           />
         </div>
 
@@ -85,6 +106,8 @@ function Register() {
             value={formData.password}
             onChange={handleChange}
             required
+            placeholder="Choose a password"
+            minLength={6}
           />
         </div>
 
@@ -97,6 +120,8 @@ function Register() {
             value={formData.confirmPassword}
             onChange={handleChange}
             required
+            placeholder="Confirm your password"
+            minLength={6}
           />
         </div>
 

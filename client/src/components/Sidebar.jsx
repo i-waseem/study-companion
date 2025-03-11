@@ -1,11 +1,16 @@
 import React from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import './Sidebar.css';
 
 function Sidebar() {
+  const location = useLocation();
   const { user, logout } = useAuth();
   const navigate = useNavigate();
+
+  const isActive = (path) => {
+    return location.pathname === path ? 'active' : '';
+  };
 
   const handleLogout = () => {
     logout();
@@ -14,55 +19,55 @@ function Sidebar() {
 
   return (
     <div className="sidebar">
-      <div className="user-info">
-        {user ? (
-          <>
-            <div className="user-avatar">
-              {user.username.charAt(0).toUpperCase()}
-            </div>
-            <div className="user-name">
-              Welcome, {user.username}!
-            </div>
-          </>
-        ) : (
-          <div className="user-name">Welcome!</div>
-        )}
+      <div className="sidebar-header">
+        <div className="user-info">
+          {user ? (
+            <>
+              <h3>Welcome, {user.username}!</h3>
+            </>
+          ) : (
+            <h3>Welcome!</h3>
+          )}
+        </div>
       </div>
 
-      <nav className="nav-menu">
-        <Link to="/" className="nav-item">
+      <nav className="sidebar-nav">
+        <Link to="/" className={`nav-item ${isActive('/')}`}>
           Home
         </Link>
-        <Link to="/subjects" className="nav-item">
+        <Link to="/subjects" className={`nav-item ${isActive('/subjects')}`}>
           Subjects
         </Link>
-        <Link to="/flashcards" className="nav-item">
+        <Link to="/flashcards" className={`nav-item ${isActive('/flashcards')}`}>
           Flashcards
         </Link>
-        <Link to="/quiz" className="nav-item">
+        <Link to="/quiz" className={`nav-item ${isActive('/quiz')}`}>
           Quiz
         </Link>
-        <Link to="/progress" className="nav-item">
+        <Link to="/progress" className={`nav-item ${isActive('/progress')}`}>
           Progress
         </Link>
-        <Link to="/notes" className="nav-item">
+        <Link to="/notes" className={`nav-item ${isActive('/notes')}`}>
           Notes
         </Link>
-        <Link to="/career-guidance" className="nav-item">
+        <Link to="/career-guidance" className={`nav-item ${isActive('/career-guidance')}`}>
           Career Guidance
         </Link>
-        <Link to="/feedback" className="nav-item">
+        <Link to="/feedback" className={`nav-item ${isActive('/feedback')}`}>
           Feedback
+        </Link>
+        <Link to="/settings" className={`nav-item ${isActive('/settings')}`}>
+          Settings
         </Link>
       </nav>
 
-      {user && (
-        <div className="logout">
-          <button className="logout-btn" onClick={handleLogout}>
+      <div className="sidebar-footer">
+        {user && (
+          <button onClick={handleLogout} className="logout-button">
             Logout
           </button>
-        </div>
-      )}
+        )}
+      </div>
     </div>
   );
 }

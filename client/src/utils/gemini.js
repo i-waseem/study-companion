@@ -1,47 +1,33 @@
-const GEMINI_API_KEY = 'AIzaSyAtRWUwff095kL_SO9YWvCawHjAUdhR0i0';
-const GEMINI_API_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent';
+import api from '../api/config';
 
-export async function getGeminiResponse(prompt) {
-    try {
-        const response = await fetch(`${GEMINI_API_URL}?key=${GEMINI_API_KEY}`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-                contents: [{
-                    parts: [{
-                        text: prompt
-                    }]
-                }],
-                generationConfig: {
-                    temperature: 0.7,
-                    topK: 40,
-                    topP: 0.95,
-                    maxOutputTokens: 1024,
-                }
-            })
-        });
+const FALLBACK_QUOTES = [
+    "Education is not about filling a pail, but lighting a fire.",
+    "The pursuit of knowledge is a lifelong journey, where the destination is not the end, but the growth that unfolds along the way.",
+    "Embrace the journey of learning, for it is an endless path that leads to the heights of wisdom and personal fulfillment.",
+    "Every challenge in learning is a stepping stone to greater understanding.",
+    "In the garden of knowledge, every question you ask plants a seed of wisdom."
+];
 
-        if (!response.ok) {
-            const errorData = await response.json();
-            console.error('Gemini API Error:', errorData);
-            throw new Error(`Failed to get response from Gemini: ${errorData.error?.message || 'Unknown error'}`);
-        }
-
-        const data = await response.json();
-        
-        if (!data.candidates?.[0]?.content?.parts?.[0]?.text) {
-            console.error('Unexpected Gemini response format:', data);
-            throw new Error('Invalid response format from Gemini');
-        }
-
-        return data.candidates[0].content.parts[0].text;
-    } catch (error) {
-        console.error('Error calling Gemini API:', error);
-        throw error;
-    }
-}
+export const getGeminiResponse = async () => {
+  try {
+    console.log('Requesting quote from server...');
+    const response = await api.get('/quotes');
+    console.log('Quote response:', {
+      isGemini: response.data.isGemini,
+      hasQuote: !!response.data.quote,
+      hasSource: !!response.data.source,
+      error: response.data.error
+    });
+    return response.data;
+  } catch (error) {
+    console.error('Error in getGeminiResponse:', {
+      message: error.message,
+      response: error.response?.data,
+      status: error.response?.status
+    });
+    throw error;
+  }
+};
 
 export function generateCareerGuidancePrompt(answers) {
     return `Based on the following student profile, provide detailed career guidance advice:

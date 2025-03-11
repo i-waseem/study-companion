@@ -26,6 +26,11 @@ function Register() {
     e.preventDefault();
     
     // Basic validation
+    if (!formData.username || !formData.email || !formData.password || !formData.confirmPassword) {
+      setError('All fields are required');
+      return;
+    }
+
     if (formData.password !== formData.confirmPassword) {
       setError('Passwords do not match');
       return;
@@ -36,11 +41,20 @@ function Register() {
       return;
     }
 
+    if (formData.username.length < 3) {
+      setError('Username must be at least 3 characters');
+      return;
+    }
+
+    if (!/^\S+@\S+\.\S+$/.test(formData.email)) {
+      setError('Please enter a valid email address');
+      return;
+    }
+
     setLoading(true);
     setError('');
 
     try {
-      // Register the user - token will be stored automatically
       await AuthService.register(
         formData.username,
         formData.email,
@@ -50,12 +64,8 @@ function Register() {
       // Redirect to home
       navigate('/home');
     } catch (err) {
-      setError(err.response?.data?.message || 'Failed to create account');
-      setFormData(prev => ({
-        ...prev,
-        password: '',
-        confirmPassword: ''
-      }));
+      console.error('Registration error:', err);
+      setError(err.response?.data?.message || 'Failed to register. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -63,13 +73,13 @@ function Register() {
 
   return (
     <div className="auth-container">
-      <div className="auth-box">
+      <div className="auth-card">
         <h2>Create Account</h2>
-        <p className="subtitle">Join our learning community</p>
+        <p className="subtitle">Start your personalized learning journey today</p>
         
         {error && (
           <div className="error-message">
-            {error}
+            An error occurred: {error}
           </div>
         )}
 
@@ -81,9 +91,8 @@ function Register() {
               name="username"
               value={formData.username}
               onChange={handleChange}
-              required
+              placeholder="Enter your username"
               disabled={loading}
-              placeholder="Enter username"
             />
           </div>
 
@@ -94,9 +103,8 @@ function Register() {
               name="email"
               value={formData.email}
               onChange={handleChange}
-              required
+              placeholder="Enter your email"
               disabled={loading}
-              placeholder="Enter email"
             />
           </div>
 
@@ -107,9 +115,8 @@ function Register() {
               name="password"
               value={formData.password}
               onChange={handleChange}
-              required
+              placeholder="Enter your password"
               disabled={loading}
-              placeholder="Enter password (min. 6 characters)"
             />
           </div>
 
@@ -120,14 +127,17 @@ function Register() {
               name="confirmPassword"
               value={formData.confirmPassword}
               onChange={handleChange}
-              required
+              placeholder="Confirm your password"
               disabled={loading}
-              placeholder="Confirm password"
             />
           </div>
 
-          <button type="submit" className="auth-button" disabled={loading}>
-            {loading ? 'Creating Account...' : 'Create Account'}
+          <button 
+            type="submit" 
+            className="auth-button"
+            disabled={loading}
+          >
+            {loading ? 'Registering...' : 'Register'}
           </button>
         </form>
 

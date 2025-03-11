@@ -1,78 +1,246 @@
 import React, { useState, useEffect } from 'react';
-import { getGeminiResponse, generateMotivationalQuotePrompt } from '../utils/gemini';
+import { useNavigate } from 'react-router-dom';
+import { Layout, Row, Col, Card, Button, Statistic, Calendar, Timeline, Avatar } from 'antd';
+import { BookOutlined, RocketOutlined, BulbOutlined, TrophyOutlined, 
+         ScheduleOutlined, TeamOutlined, FileTextOutlined, StarOutlined, NotificationOutlined } from '@ant-design/icons';
+import { useAuth } from '../context/AuthContext';
+import { getGeminiResponse } from '../utils/gemini';
+import logo from '../assets/SC2.png';
 import './Home.css';
 
+const { Content } = Layout;
+
 function Home() {
-  const [quote, setQuote] = useState({ text: '', author: '' });
-  const [loading, setLoading] = useState(true);
+  const navigate = useNavigate();
+  const { user } = useAuth();
+  const [quote, setQuote] = useState('');
+  const [source, setSource] = useState('');
+  const [quoteError, setQuoteError] = useState(false);
+  const [quoteLoading, setQuoteLoading] = useState(true);
+
+  useEffect(() => {
+    let mounted = true;
+
+    const getQuote = async () => {
+      try {
+        setQuoteLoading(true);
+        setQuoteError(false);
+        const response = await getGeminiResponse();
+        if (mounted) {
+          setQuote(response.quote);
+          setSource(response.source);
+        }
+      } catch (error) {
+        console.error('Error fetching quote:', error);
+        if (mounted) {
+          setQuoteError(true);
+        }
+      } finally {
+        if (mounted) {
+          setQuoteLoading(false);
+        }
+      }
+    };
+
+    getQuote();
+
+    return () => {
+      mounted = false;
+    };
+  }, []);
 
   const fetchNewQuote = async () => {
     try {
-      setLoading(true);
-      const prompt = generateMotivationalQuotePrompt();
-      const response = await getGeminiResponse(prompt);
-      
-      // Just use the response text directly
-      setQuote({
-        text: response.trim()
-      });
+      setQuoteLoading(true);
+      setQuoteError(false);
+      const response = await getGeminiResponse();
+      setQuote(response.quote);
+      setSource(response.source);
     } catch (error) {
       console.error('Error fetching quote:', error);
-      setQuote({
-        text: "Every moment is a fresh beginning."
-      });
+      setQuoteError(true);
     } finally {
-      setLoading(false);
+      setQuoteLoading(false);
     }
   };
 
-  useEffect(() => {
-    fetchNewQuote();
-  }, []); // Fetch quote when component mounts
+  const handleStartStudy = () => {
+    navigate('/study-session');
+  };
+
+  const handleStartQuiz = () => {
+    navigate('/quiz');
+  };
+
+  const handleViewNotes = () => {
+    navigate('/notes');
+  };
+
+  const handleViewFlashcards = () => {
+    navigate('/flashcards');
+  };
+
+  const handleCareerGuidance = () => {
+    navigate('/career-guidance');
+  };
 
   return (
-    <div className="home">
-      <div className="welcome-section">
-        <h1>Welcome to Study Companion</h1>
-        <p>Your personal assistant for academic success</p>
-      </div>
-
-      <div className={`quote-section ${loading ? 'loading' : ''}`}>
-        <div className="quote-content">
-          {loading ? (
-            <div className="quote-skeleton">
-              <div className="skeleton-text"></div>
+    <Layout className="home-layout">
+      <Content className="home-content">
+        <div className="welcome-section">
+          <Card className="brand-card">
+            <div className="brand-section">
+              <div className="brand-content">
+                <div className="brand-logo">
+                  <img src={logo} alt="Study Companion Logo" />
+                </div>
+                <h1>Study Companion</h1>
+              </div>
+              <div className="ai-badge">Powered by AI</div>
             </div>
-          ) : (
-            <p className="quote-text">{quote.text}</p>
-          )}
-        </div>
-        <button 
-          className="refresh-quote" 
-          onClick={fetchNewQuote}
-          disabled={loading}
-          title="Get a new quote"
-        >
-          <span>↻</span>
-          New Quote
-        </button>
-      </div>
+          </Card>
 
-      <div className="stats-grid">
-        <div className="stat-card">
-          <h3>Study Time</h3>
-          <p className="stat-value">2 hours today</p>
+          <Card className="quote-card">
+            <div className="motivation-section">
+              <h3>Today's Motivation</h3>
+              {quoteLoading ? (
+                <p className="quote-text">Loading your daily motivation...</p>
+              ) : quoteError ? (
+                <div>
+                  <p className="quote-text error">Unable to load quote</p>
+                  <Button onClick={fetchNewQuote} type="link">Try Again</Button>
+                </div>
+              ) : (
+                <blockquote>
+                  "{quote}"
+                  <footer>
+                    — {source || 'Gemini AI'}
+                  </footer>
+                </blockquote>
+              )}
+              {!quoteLoading && !quoteError && (
+                <Button onClick={fetchNewQuote} type="link">Get New Quote</Button>
+              )}
+            </div>
+          </Card>
         </div>
-        <div className="stat-card">
-          <h3>Quizzes Completed</h3>
-          <p className="stat-value">3 this week</p>
+
+        <div className="actions-section">
+          <Row gutter={[16, 0]}>
+            <Col xs={8}>
+              <Card className="action-card whats-new-card">
+                <NotificationOutlined className="card-icon" />
+                <h3>What's New</h3>
+                <Timeline
+                  className="mini-timeline"
+                  items={[
+                    {
+                      children: 'New AI-powered quiz generation'
+                    },
+                    {
+                      children: 'Improved flashcard study mode'
+                    }
+                  ]}
+                />
+              </Card>
+            </Col>
+            <Col xs={8}>
+              <Card 
+                className="action-card quiz-card"
+                onClick={handleStartQuiz}
+                hoverable
+              >
+                <RocketOutlined className="card-icon" />
+                <h3>Take a Quiz</h3>
+                <p>Test your knowledge</p>
+              </Card>
+            </Col>
+            <Col xs={8}>
+              <Card 
+                className="action-card flashcard-card"
+                onClick={handleViewFlashcards}
+                hoverable
+              >
+                <BulbOutlined className="card-icon" />
+                <h3>Flashcards</h3>
+                <p>Review with flashcards</p>
+              </Card>
+            </Col>
+          </Row>
         </div>
-        <div className="stat-card">
-          <h3>Flashcards Mastered</h3>
-          <p className="stat-value">25 cards</p>
+
+        <div className="main-content-section">
+          <Row gutter={[16, 16]}>
+            {/* Left Column - Progress and Activity */}
+            <Col xs={24} lg={16}>
+              <Card title="Your Progress" className="progress-card">
+                <Row gutter={[16, 16]}>
+                  <Col xs={8}>
+                    <Statistic 
+                      title="Study Streak" 
+                      value={user?.studyStreak || 0} 
+                      suffix="days"
+                    />
+                  </Col>
+                  <Col xs={8}>
+                    <Statistic 
+                      title="Quizzes Taken" 
+                      value={user?.quizHistory?.length || 0}
+                    />
+                  </Col>
+                  <Col xs={8}>
+                    <Statistic 
+                      title="Average Score" 
+                      value={75} 
+                      suffix="%"
+                    />
+                  </Col>
+                </Row>
+              </Card>
+
+              <Card title="Recent Activity" className="activity-card">
+                <Timeline
+                  items={[
+                    {
+                      dot: <BookOutlined />,
+                      children: 'Completed Mathematics Quiz - 85%'
+                    },
+                    {
+                      dot: <BulbOutlined />,
+                      children: 'Created new Physics flashcards'
+                    },
+                    {
+                      dot: <RocketOutlined />,
+                      children: 'Achieved study streak of 3 days'
+                    }
+                  ]}
+                />
+              </Card>
+            </Col>
+
+            {/* Right Column - Calendar and Quick Links */}
+            <Col xs={24} lg={8}>
+              <Card title="Study Calendar" className="calendar-card">
+                <div className="calendar-wrapper">
+                  <Calendar fullscreen={false} />
+                </div>
+              </Card>
+
+              <Card title="Quick Links" className="quick-links-card">
+                <div className="quick-links-wrapper">
+                  <Button type="link" icon={<FileTextOutlined />} onClick={handleViewNotes}>
+                    Notes
+                  </Button>
+                  <Button type="link" icon={<TeamOutlined />} onClick={handleCareerGuidance}>
+                    Career Guidance
+                  </Button>
+                </div>
+              </Card>
+            </Col>
+          </Row>
         </div>
-      </div>
-    </div>
+      </Content>
+    </Layout>
   );
 }
 
