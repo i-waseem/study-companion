@@ -44,7 +44,7 @@ function AppRoutes() {
               <SubjectSelection />
             </ProtectedRoute>
           } />
-          <Route path="/quiz/:subject/:topic" element={
+          <Route path="/quiz/:subjectId/:topicId/:subtopicId" element={
             <ProtectedRoute>
               <Quiz />
             </ProtectedRoute>

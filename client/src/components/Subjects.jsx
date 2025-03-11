@@ -17,6 +17,7 @@ function Subjects() {
   const navigate = useNavigate();
   const [selectedSubject, setSelectedSubject] = useState(null);
   const [selectedTopic, setSelectedTopic] = useState(null);
+  const [selectedSubtopic, setSelectedSubtopic] = useState(null);
   const [isModalVisible, setIsModalVisible] = useState(false);
 
   const handleSubjectClick = (subject) => {
@@ -26,18 +27,28 @@ function Subjects() {
 
   const handleTopicSelect = (topic) => {
     setSelectedTopic(topic);
+    setSelectedSubtopic(null); // Reset subtopic when topic changes
+  };
+
+  const handleSubtopicSelect = (subtopic, index) => {
+    setSelectedSubtopic({ text: subtopic, index });
   };
 
   const handleStudyModeSelect = (mode) => {
-    if (!selectedTopic) {
+    if (!selectedTopic || !selectedSubtopic) {
       return;
     }
 
-    const path = `/${mode}/${selectedSubject.id}/${selectedTopic.id}`;
-    navigate(path);
+    if (mode === 'quiz') {
+      navigate(`/quiz/${selectedSubject.id}/${selectedTopic.id}/${selectedSubtopic.index}`);
+    } else if (mode === 'flashcards') {
+      navigate(`/flashcards/${selectedSubject.id}/${selectedTopic.id}/${selectedSubtopic.index}`);
+    }
+    
     setIsModalVisible(false);
     setSelectedSubject(null);
     setSelectedTopic(null);
+    setSelectedSubtopic(null);
   };
 
   return (
@@ -84,6 +95,7 @@ function Subjects() {
           setIsModalVisible(false);
           setSelectedSubject(null);
           setSelectedTopic(null);
+          setSelectedSubtopic(null);
         }}
         footer={null}
         width={700}
@@ -101,7 +113,16 @@ function Subjects() {
                     <Title level={4}>{topic.name}</Title>
                     <ul className="subtopics-list">
                       {topic.subtopics.map((subtopic, index) => (
-                        <li key={index}>{subtopic}</li>
+                        <li 
+                          key={index}
+                          className={selectedSubtopic?.text === subtopic ? 'selected' : ''}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleSubtopicSelect(subtopic, index);
+                          }}
+                        >
+                          {subtopic}
+                        </li>
                       ))}
                     </ul>
                   </div>
@@ -117,14 +138,14 @@ function Subjects() {
               <Space>
                 <Button
                   type="primary"
-                  disabled={!selectedTopic}
+                  disabled={!selectedTopic || !selectedSubtopic}
                   onClick={() => handleStudyModeSelect('quiz')}
                 >
                   Take Quiz
                 </Button>
                 <Button
                   type="primary"
-                  disabled={!selectedTopic}
+                  disabled={!selectedTopic || !selectedSubtopic}
                   onClick={() => handleStudyModeSelect('flashcards')}
                 >
                   Study Flashcards

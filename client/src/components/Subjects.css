@@ -8,7 +8,7 @@
 
 .subjects-header {
   text-align: center;
-  margin-bottom: 32px;
+  margin-bottom: 24px;
 }
 
 .subjects-header h2 {
@@ -79,7 +79,7 @@
 }
 
 .subject-icon {
-  font-size: 32px;
+  font-size: 36px;
   margin-bottom: 16px;
 }
 
@@ -139,79 +139,67 @@
 }
 
 .topics-preview ul {
-  list-style-type: none;
+  list-style: none;
   padding-left: 0;
-  margin: 8px 0;
+  margin: 0;
 }
 
 .topics-preview li {
-  margin: 4px 0;
+  margin: 8px 0;
   color: rgba(0, 0, 0, 0.65);
-  padding: 4px 8px;
-  border-radius: 4px;
-  transition: background-color 0.3s;
 }
 
-.topics-preview li:hover {
-  background-color: rgba(30, 60, 114, 0.05);
-}
-
-/* Modal Styles */
 .topic-selection {
-  margin-top: 16px;
+  padding: 16px 0;
 }
 
 .topic-item {
   cursor: pointer;
-  padding: 16px;
+  padding: 16px !important;
   border-radius: 8px;
   transition: all 0.3s;
-  border: 1px solid transparent;
 }
 
 .topic-item:hover {
-  background-color: #f0f2f5;
-  border-color: #e6e6e6;
+  background-color: rgba(0, 0, 0, 0.02);
 }
 
 .topic-item.selected {
-  background-color: #e6f7ff;
-  border-color: #91d5ff;
+  background-color: rgba(24, 144, 255, 0.1);
 }
 
 .topic-content {
   flex: 1;
 }
 
-.topic-content h4 {
-  margin-bottom: 8px;
-  color: #1e3c72;
-}
-
 .subtopics-list {
-  list-style-type: none;
+  list-style: none;
   padding-left: 0;
-  margin: 8px 0;
+  margin: 8px 0 0 0;
 }
 
 .subtopics-list li {
-  margin: 4px 0;
-  color: rgba(0, 0, 0, 0.65);
-  font-size: 14px;
-  padding: 4px 8px;
-  border-radius: 4px;
+  display: inline-block;
+  margin: 4px 8px 4px 0;
+  padding: 4px 12px;
+  background-color: rgba(0, 0, 0, 0.04);
+  border-radius: 16px;
+  cursor: pointer;
+  transition: all 0.3s;
 }
 
 .subtopics-list li:hover {
-  background-color: rgba(30, 60, 114, 0.05);
+  background-color: rgba(24, 144, 255, 0.1);
+}
+
+.subtopics-list li.selected {
+  background-color: #1890ff;
+  color: white;
 }
 
 .study-mode-selection {
   text-align: center;
-  padding: 24px 0;
-  background: #f8f9fa;
-  border-radius: 8px;
-  margin-top: 16px;
+  padding: 16px 0;
 }
 
 .study-mode-selection h4 {

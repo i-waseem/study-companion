@@ -1,87 +1,68 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Card, Select, Button, Typography, Alert, Spin } from 'antd';
+import { subjects } from '../data/subjects';
 import api from '../api/config';
 import './SubjectSelection.css';
 
 const { Title } = Typography;
 const { Option } = Select;
 
-const subjects = {
-  'mathematics': {
-    name: 'Mathematics',
-    topics: [
-      'Algebra',
-      'Geometry',
-      'Trigonometry',
-      'Statistics',
-      'Calculus'
-    ]
-  },
-  'physics': {
-    name: 'Physics',
-    topics: [
-      'Mechanics',
-      'Waves',
-      'Electricity',
-      'Magnetism',
-      'Nuclear Physics'
-    ]
-  },
-  'chemistry': {
-    name: 'Chemistry',
-    topics: [
-      'Atomic Structure',
-      'Chemical Bonding',
-      'Periodic Table',
-      'Organic Chemistry',
-      'Chemical Reactions'
-    ]
-  },
-  'biology': {
-    name: 'Biology',
-    topics: [
-      'Cell Biology',
-      'Genetics',
-      'Ecology',
-      'Human Biology',
-      'Evolution'
-    ]
-  }
-};
-
 function SubjectSelection() {
   const navigate = useNavigate();
-  const [selectedSubject, setSelectedSubject] = useState(null);
-  const [selectedTopic, setSelectedTopic] = useState(null);
-  const [error, setError] = useState(null);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
+  const [selectedSubject, setSelectedSubject] = useState('computer-science');
+  const [selectedTopic, setSelectedTopic] = useState(null);
+  const [selectedSubtopic, setSelectedSubtopic] = useState(null);
   const [testResult, setTestResult] = useState(null);
+
+  const subject = subjects.find(s => s.id === selectedSubject);
+  const topics = subject ? subject.topics : [];
 
   const handleSubjectChange = (value) => {
     setSelectedSubject(value);
-    setSelectedTopic(null); // Reset topic when subject changes
-    setError(null); // Clear any previous errors
+    setSelectedTopic(null);
+    setSelectedSubtopic(null);
+    setError(null);
   };
 
   const handleTopicChange = (value) => {
     setSelectedTopic(value);
-    setError(null); // Clear any previous errors
+    setSelectedSubtopic(null);
+    setError(null);
+  };
+
+  const handleSubtopicChange = (value) => {
+    setSelectedSubtopic(value);
+    setError(null);
   };
 
   const handleStartQuiz = () => {
-    if (!selectedSubject || !selectedTopic) {
-      setError('Please select both a subject and topic');
+    if (!selectedTopic || !selectedSubtopic) {
+      setError('Please select both a topic and subtopic');
       return;
     }
 
     setLoading(true);
     
-    // Convert spaces to hyphens for URL
-    const subjectParam = selectedSubject.toLowerCase().replace(/ /g, '-');
-    const topicParam = selectedTopic.toLowerCase().replace(/ /g, '-');
+    // Get the topic object
+    const topic = topics.find(t => t.id === selectedTopic);
+    if (!topic) {
+      setError('Invalid topic selected');
+      setLoading(false);
+      return;
+    }
+
+    // Get the subtopic index
+    const subtopicIndex = topic.subtopics.indexOf(selectedSubtopic);
+    if (subtopicIndex === -1) {
+      setError('Invalid subtopic selected');
+      setLoading(false);
+      return;
+    }
     
-    navigate(`/quiz/${subjectParam}/${topicParam}`);
+    navigate(`/quiz/${selectedSubject}/${selectedTopic}/${subtopicIndex}`);
   };
 
   const handleTestApi = async () => {
@@ -103,6 +84,12 @@ function SubjectSelection() {
     } finally {
       setLoading(false);
     }
+  };
+
+  const getSubtopics = () => {
+    if (!selectedTopic) return [];
+    const topic = topics.find(t => t.id === selectedTopic);
+    return topic ? topic.subtopics : [];
   };
 
   return (
@@ -142,8 +129,8 @@ function SubjectSelection() {
               value={selectedSubject}
               disabled={loading}
             >
-              {Object.entries(subjects).map(([key, subject]) => (
-                <Option key={key} value={key}>
+              {subjects.map((subject) => (
+                <Option key={subject.id} value={subject.id}>
                   {subject.name}
                 </Option>
               ))}
@@ -153,18 +140,34 @@ function SubjectSelection() {
           <div className="form-item">
             <label>Select Topic:</label>
             <Select
-              placeholder={selectedSubject ? "Choose a topic" : "Select a subject first"}
+              placeholder="Choose a topic"
               style={{ width: '100%' }}
               onChange={handleTopicChange}
               value={selectedTopic}
-              disabled={!selectedSubject || loading}
+              disabled={loading}
             >
-              {selectedSubject && 
-                subjects[selectedSubject].topics.map(topic => (
-                  <Option key={topic} value={topic}>
-                    {topic}
-                  </Option>
-                ))}
+              {topics.map((topic) => (
+                <Option key={topic.id} value={topic.id}>
+                  {topic.name}
+                </Option>
+              ))}
+            </Select>
+          </div>
+
+          <div className="form-item">
+            <label>Select Subtopic:</label>
+            <Select
+              placeholder={selectedTopic ? "Choose a subtopic" : "Select a topic first"}
+              style={{ width: '100%' }}
+              onChange={handleSubtopicChange}
+              value={selectedSubtopic}
+              disabled={!selectedTopic || loading}
+            >
+              {getSubtopics().map(subtopic => (
+                <Option key={subtopic} value={subtopic} title={subtopic}>
+                  {subtopic}
+                </Option>
+              ))}
             </Select>
           </div>
 
@@ -174,7 +177,7 @@ function SubjectSelection() {
             onClick={handleStartQuiz}
             className="start-button"
             loading={loading}
-            disabled={!selectedSubject || !selectedTopic || loading}
+            disabled={!selectedTopic || !selectedSubtopic || loading}
           >
             {loading ? 'Preparing Quiz...' : 'Start Quiz'}
           </Button>
