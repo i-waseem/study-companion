@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Card, Select, Button, Typography, Alert, Spin } from 'antd';
-import { subjects } from '../data/subjects';
 import api from '../api/config';
 import './SubjectSelection.css';
 
@@ -12,30 +11,42 @@ function SubjectSelection() {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
-  const [selectedSubject, setSelectedSubject] = useState('computer-science');
-  const [selectedTopic, setSelectedTopic] = useState(null);
-  const [selectedSubtopic, setSelectedSubtopic] = useState(null);
-  const [testResult, setTestResult] = useState(null);
+  const [curriculum, setCurriculum] = useState(null);
+  const [selectedTopic, setSelectedTopic] = useState('');
+  const [selectedSubtopic, setSelectedSubtopic] = useState('');
 
-  const subject = subjects.find(s => s.id === selectedSubject);
-  const topics = subject ? subject.topics : [];
+  // Fetch curriculum data
+  useEffect(() => {
+    const fetchCurriculum = async () => {
+      try {
+        setLoading(true);
+        setError(null);
+        const response = await api.get('/curriculum/o-level/computer-science');
+        console.log('Curriculum data:', response.data);
+        if (response.data && response.data.topics) {
+          setCurriculum(response.data);
+        } else {
+          throw new Error('Invalid curriculum data format');
+        }
+      } catch (err) {
+        console.error('Failed to fetch curriculum:', err);
+        setError('Failed to fetch curriculum data. Please try refreshing the page.');
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchCurriculum();
+  }, []);
 
-  const handleSubjectChange = (value) => {
-    setSelectedSubject(value);
-    setSelectedTopic(null);
-    setSelectedSubtopic(null);
-    setError(null);
+  const handleTopicChange = (topicName) => {
+    console.log('Topic changed to:', topicName);
+    setSelectedTopic(topicName);
+    setSelectedSubtopic('');
   };
 
-  const handleTopicChange = (value) => {
-    setSelectedTopic(value);
-    setSelectedSubtopic(null);
-    setError(null);
-  };
-
-  const handleSubtopicChange = (value) => {
-    setSelectedSubtopic(value);
-    setError(null);
+  const handleSubtopicChange = (subtopicName) => {
+    console.log('Subtopic changed to:', subtopicName);
+    setSelectedSubtopic(subtopicName);
   };
 
   const handleStartQuiz = () => {
@@ -44,62 +55,51 @@ function SubjectSelection() {
       return;
     }
 
-    setLoading(true);
-    
-    // Get the topic object
-    const topic = topics.find(t => t.id === selectedTopic);
-    if (!topic) {
-      setError('Invalid topic selected');
-      setLoading(false);
-      return;
-    }
-
-    // Get the subtopic index
-    const subtopicIndex = topic.subtopics.indexOf(selectedSubtopic);
-    if (subtopicIndex === -1) {
-      setError('Invalid subtopic selected');
-      setLoading(false);
-      return;
-    }
-    
-    navigate(`/quiz/${selectedSubject}/${selectedTopic}/${subtopicIndex}`);
-  };
-
-  const handleTestApi = async () => {
     try {
-      setLoading(true);
-      setError(null);
-      setTestResult(null);
-      
-      console.log('Making test API call...');
-      const response = await api.post('/quiz/test');
-      console.log('Test API response:', response.data);
-      
-      setTestResult(response.data.answer);
+      // Find the selected topic object
+      const topic = curriculum.topics.find(t => t.name === selectedTopic);
+      if (!topic) {
+        throw new Error('Selected topic not found');
+      }
+
+      // Find the selected subtopic index
+      const subtopicIndex = topic.subtopics.findIndex(st => st.name === selectedSubtopic);
+      if (subtopicIndex === -1) {
+        throw new Error('Selected subtopic not found');
+      }
+
+      // Navigate to the quiz with encoded parameters
+      const encodedSubject = encodeURIComponent('computer-science');
+      const encodedTopic = encodeURIComponent(selectedTopic);
+      navigate(`/quiz/${encodedSubject}/${encodedTopic}/${subtopicIndex}`);
     } catch (error) {
-      console.error('Test API error:', error);
-      const errorMessage = error.response?.data?.error || error.message;
-      const errorDetails = error.response?.data?.details;
-      setError(`Error: ${errorMessage}${errorDetails ? `\nDetails: ${errorDetails}` : ''}`);
-    } finally {
-      setLoading(false);
+      console.error('Navigation error:', error);
+      setError(error.message);
     }
   };
 
-  const getSubtopics = () => {
-    if (!selectedTopic) return [];
-    const topic = topics.find(t => t.id === selectedTopic);
-    return topic ? topic.subtopics : [];
-  };
+  if (loading) {
+    return (
+      <div className="subject-selection-container">
+        <Card>
+          <div style={{ textAlign: 'center', padding: '2rem' }}>
+            <Spin size="large" />
+            <p style={{ marginTop: '1rem' }}>Loading curriculum...</p>
+          </div>
+        </Card>
+      </div>
+    );
+  }
 
   return (
     <div className="subject-selection-container">
       <Card className="selection-card">
         <Title level={2}>Start a Quiz</Title>
-        
+
         {error && (
           <Alert
-            message={error}
+            message="Error"
+            description={error}
             type="error"
             showIcon
             closable
@@ -108,86 +108,62 @@ function SubjectSelection() {
           />
         )}
 
-        {testResult && (
-          <Alert
-            message={`Test Result: ${testResult}`}
-            type="success"
-            showIcon
-            closable
-            onClose={() => setTestResult(null)}
-            style={{ marginBottom: 16 }}
-          />
-        )}
-
         <div className="selection-form">
           <div className="form-item">
             <label>Select Subject:</label>
             <Select
-              placeholder="Choose a subject"
               style={{ width: '100%' }}
-              onChange={handleSubjectChange}
-              value={selectedSubject}
-              disabled={loading}
+              value="Computer Science"
+              disabled={true}
             >
-              {subjects.map((subject) => (
-                <Option key={subject.id} value={subject.id}>
-                  {subject.name}
-                </Option>
-              ))}
+              <Option value="Computer Science">Computer Science</Option>
             </Select>
           </div>
 
           <div className="form-item">
             <label>Select Topic:</label>
             <Select
-              placeholder="Choose a topic"
               style={{ width: '100%' }}
-              onChange={handleTopicChange}
               value={selectedTopic}
-              disabled={loading}
+              onChange={handleTopicChange}
+              placeholder="Choose a topic"
             >
-              {topics.map((topic) => (
-                <Option key={topic.id} value={topic.id}>
-                  {topic.name}
-                </Option>
+              {curriculum?.topics?.map(topic => (
+                <Option key={topic.name} value={topic.name}>{topic.name}</Option>
               ))}
             </Select>
           </div>
 
-          <div className="form-item">
-            <label>Select Subtopic:</label>
-            <Select
-              placeholder={selectedTopic ? "Choose a subtopic" : "Select a topic first"}
-              style={{ width: '100%' }}
-              onChange={handleSubtopicChange}
-              value={selectedSubtopic}
-              disabled={!selectedTopic || loading}
-            >
-              {getSubtopics().map(subtopic => (
-                <Option key={subtopic} value={subtopic} title={subtopic}>
-                  {subtopic}
-                </Option>
-              ))}
-            </Select>
-          </div>
-
-          <Button 
-            type="primary" 
-            size="large"
-            onClick={handleStartQuiz}
-            className="start-button"
-            loading={loading}
-            disabled={!selectedTopic || !selectedSubtopic || loading}
-          >
-            {loading ? 'Preparing Quiz...' : 'Start Quiz'}
-          </Button>
+          {selectedTopic && (
+            <div className="form-item">
+              <label>Select Subtopic:</label>
+              <Select
+                style={{ width: '100%' }}
+                value={selectedSubtopic}
+                onChange={handleSubtopicChange}
+                placeholder="Choose a subtopic"
+              >
+                {curriculum?.topics
+                  .find(t => t.name === selectedTopic)
+                  ?.subtopics.map(subtopic => (
+                    <Option key={subtopic.name} value={subtopic.name}>
+                      {subtopic.name}
+                    </Option>
+                  ))}
+              </Select>
+            </div>
+          )}
 
           <Button
-            onClick={handleTestApi}
-            style={{ marginTop: 16 }}
+            type="primary"
+            onClick={handleStartQuiz}
+            disabled={!selectedTopic || !selectedSubtopic || loading}
             loading={loading}
+            block
+            size="large"
+            style={{ marginTop: '1rem' }}
           >
-            Test API Connection
+            Start Quiz
           </Button>
         </div>
       </Card>

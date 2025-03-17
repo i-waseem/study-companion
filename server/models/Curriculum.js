@@ -10,7 +10,8 @@ const curriculumSchema = new mongoose.Schema({
   subject: {
     type: String,
     enum: ['Mathematics', 'Science', 'English', 'History', 'Geography', 
-           'Physics', 'Chemistry', 'Biology', 'Computer-Science', 'Pakistan-Studies'],
+           'Physics', 'Chemistry', 'Biology', 'Computer Science', 'Pakistan Studies',
+           'Economics'],
     required: true
   },
   topics: [{

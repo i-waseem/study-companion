@@ -1,9 +1,18 @@
+// Load environment variables first
+require('dotenv').config();
+
+// Debug environment variables
+console.log('Environment variables loaded:', {
+  NODE_ENV: process.env.NODE_ENV,
+  PORT: process.env.PORT,
+  GEMINI_API_KEY: process.env.GEMINI_API_KEY ? 'Present' : 'Missing'
+});
+
 const express = require('express');
 const mongoose = require('mongoose');
 const cors = require('cors');
 const cookieParser = require('cookie-parser');
 const path = require('path');
-require('dotenv').config();
 
 const app = express();
 
@@ -41,18 +50,23 @@ app.use((req, res, next) => {
   next();
 });
 
-// API Routes
-const apiRouter = express.Router();
-app.use('/api', apiRouter);
+// Import routes
+const authRoutes = require('./routes/auth');
+const quizRoutes = require('./routes/quiz');
+const curriculumRoutes = require('./routes/curriculum');
+const quotesRoutes = require('./routes/quotes');
+const userRoutes = require('./routes/user');
+const notificationsRoutes = require('./routes/notifications');
+const achievementsRoutes = require('./routes/achievements');
 
-// Mount routes on API router
-apiRouter.use('/auth', require('./routes/auth'));
-apiRouter.use('/quiz', require('./routes/quiz'));
-apiRouter.use('/quotes', require('./routes/quotes'));
-apiRouter.use('/curriculum', require('./routes/curriculum'));
-apiRouter.use('/user', require('./routes/user'));
-apiRouter.use('/notifications', require('./routes/notifications'));
-apiRouter.use('/achievements', require('./routes/achievements'));
+// Register routes
+app.use('/api/auth', authRoutes);
+app.use('/api/quiz', quizRoutes);
+app.use('/api/curriculum', curriculumRoutes);
+app.use('/api/quotes', quotesRoutes);
+app.use('/api/user', userRoutes);
+app.use('/api/notifications', notificationsRoutes);
+app.use('/api/achievements', achievementsRoutes);
 
 // Test endpoint
 app.get('/api/test', (req, res) => {
@@ -112,4 +126,10 @@ const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {
   console.log('Setting up routes...');
   console.log(`Server is running on port ${PORT}`);
+  console.log('Environment:', {
+    NODE_ENV: process.env.NODE_ENV,
+    MONGODB_URI: process.env.MONGODB_URI ? 'Set' : 'Not set',
+    GEMINI_API_KEY: process.env.GEMINI_API_KEY ? 'Set' : 'Not set',
+    PORT: process.env.PORT
+  });
 });

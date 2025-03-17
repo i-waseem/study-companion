@@ -1,10 +1,8 @@
 const express = require('express');
 const router = express.Router();
-const { GoogleGenerativeAI } = require('@google/generative-ai');
 const auth = require('../middleware/auth');
-
-// Initialize Gemini AI
-const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+const Curriculum = require('../models/Curriculum');
+const { generateQuizQuestions, testGeminiAPI } = require('../services/quiz');
 
 // Debug route to check environment
 router.get('/debug', auth, async (req, res) => {
@@ -18,6 +16,22 @@ router.get('/debug', auth, async (req, res) => {
     env: envVars,
     time: new Date().toISOString()
   });
+});
+
+// Debug route to test Gemini API
+router.get('/test-gemini', auth, async (req, res) => {
+  try {
+    const result = await testGeminiAPI();
+    res.json({ success: true, message: result });
+  } catch (error) {
+    console.error('Gemini API test failed:', error);
+    res.status(500).json({ 
+      success: false, 
+      error: error.message,
+      details: error.errorDetails || null,
+      apiKey: process.env.GEMINI_API_KEY ? 'Present' : 'Missing'
+    });
+  }
 });
 
 // Simple test route
@@ -138,157 +152,32 @@ function validateQuiz(quiz) {
   });
 }
 
+// Generate quiz based on topic and subtopic
 router.post('/generate', auth, async (req, res) => {
   try {
-    const { subject, topic, subtopic } = req.body;
-    console.log('Generating quiz for:', { subject, topic, subtopic });
+    const { subject, topic, subtopic, learningObjectives } = req.body;
 
-    const model = genAI.getGenerativeModel({ 
-      model: "models/gemini-2.0-flash"
+    console.log('Generating quiz with:', {
+      subject,
+      topic,
+      subtopic,
+      learningObjectives
     });
 
-    // Generate questions in a more structured format
-    const prompt = {
-      contents: [{
-        role: 'user',
-        parts: [{
-          text: `Create a quiz about ${subtopic} in ${subject} (${topic}). Return EXACTLY 10 questions in this format:
+    // Generate quiz questions
+    const questions = await generateQuizQuestions({
+      subject,
+      topic,
+      subtopic,
+      learningObjectives
+    });
 
-For multiple choice questions (create 6):
-Question: [question text]
-Options:
-A) [option 1]
-B) [option 2]
-C) [option 3]
-D) [option 4]
-Correct Answer: [A, B, C, or D]
-Explanation: [explanation]
-Difficulty: [easy, medium, or hard]
-
-For true/false questions (create 2):
-Statement: [statement text]
-Answer: [True or False]
-Explanation: [explanation]
-Difficulty: [easy, medium, or hard]
-
-For short answer questions (create 2):
-Question: [question text]
-Key Points:
-- [key point 1]
-- [key point 2]
-- [key point 3]
-Explanation: [explanation]
-Difficulty: [easy, medium, or hard]
-
-Make sure each question has all required fields and is appropriate for O Level students.
-Include real-world examples and applications where possible.`
-        }]
-      }]
-    };
-
-    // Get questions from Gemini
-    console.log('Sending request with formatted params:', { subject, topic });
-    const result = await model.generateContent(prompt);
-    const response = await result.response;
-    const rawText = response.text();
-    console.log('Raw response:', rawText);
-
-    // Parse the response into structured quiz format
-    const questions = [];
-    const questionBlocks = rawText.split(/(?=Question:|Statement:)/).filter(block => block.trim());
-
-    for (const block of questionBlocks) {
-      const lines = block.split('\n').map(l => l.trim()).filter(l => l);
-      
-      if (block.includes('Options:')) {
-        // Multiple choice question
-        const question = lines.find(l => l.startsWith('Question:'))?.replace('Question:', '').trim();
-        const options = lines
-          .filter(l => /^[A-D]\)/.test(l))
-          .map(l => l.replace(/^[A-D]\)\s*/, '').trim());
-        const correctAnswer = lines.find(l => l.startsWith('Correct Answer:'))?.replace('Correct Answer:', '').trim();
-        const explanation = lines.find(l => l.startsWith('Explanation:'))?.replace('Explanation:', '').trim();
-        const difficulty = lines.find(l => l.startsWith('Difficulty:'))?.replace('Difficulty:', '').trim();
-
-        if (!question || !options.length || !correctAnswer || !explanation || !difficulty) {
-          console.error('Invalid multiple choice question format:', { question, options, correctAnswer, explanation, difficulty });
-          throw new Error('Invalid multiple choice question format');
-        }
-
-        questions.push({
-          type: 'multiple_choice',
-          question,
-          options,
-          correctAnswer: ['A', 'B', 'C', 'D'].indexOf(correctAnswer),
-          explanation,
-          difficulty
-        });
-      } else if (block.includes('Answer:')) {
-        // True/false question
-        const statement = lines.find(l => l.startsWith('Statement:'))?.replace('Statement:', '').trim();
-        const answer = lines.find(l => l.startsWith('Answer:'))?.replace('Answer:', '').trim();
-        const explanation = lines.find(l => l.startsWith('Explanation:'))?.replace('Explanation:', '').trim();
-        const difficulty = lines.find(l => l.startsWith('Difficulty:'))?.replace('Difficulty:', '').trim();
-
-        if (!statement || !answer || !explanation || !difficulty) {
-          console.error('Invalid true/false question format:', { statement, answer, explanation, difficulty });
-          throw new Error('Invalid true/false question format');
-        }
-
-        questions.push({
-          type: 'true_false',
-          statement,
-          isTrue: answer.toLowerCase().includes('true'),
-          explanation,
-          difficulty
-        });
-      } else if (block.includes('Key Points:')) {
-        // Short answer question
-        const question = lines.find(l => l.startsWith('Question:'))?.replace('Question:', '').trim();
-        const keyPointsStart = lines.findIndex(l => l === 'Key Points:');
-        const keyPoints = [];
-        
-        // Collect key points until we hit Explanation or Difficulty
-        for (let i = keyPointsStart + 1; i < lines.length; i++) {
-          if (lines[i].startsWith('Explanation:') || lines[i].startsWith('Difficulty:')) break;
-          if (lines[i].startsWith('-')) {
-            keyPoints.push(lines[i].replace('-', '').trim());
-          }
-        }
-
-        const explanation = lines.find(l => l.startsWith('Explanation:'))?.replace('Explanation:', '').trim();
-        const difficulty = lines.find(l => l.startsWith('Difficulty:'))?.replace('Difficulty:', '').trim();
-
-        if (!question || !keyPoints.length || !explanation || !difficulty) {
-          console.error('Invalid short answer question format:', { question, keyPoints, explanation, difficulty });
-          throw new Error('Invalid short answer question format');
-        }
-
-        questions.push({
-          type: 'short_answer',
-          question,
-          keyPoints,
-          explanation,
-          difficulty
-        });
-      }
-    }
-
-    if (questions.length === 0) {
-      throw new Error('No valid questions could be parsed from the response');
-    }
-
-    // Validate the generated quiz
-    console.log('Generated questions:', questions);
-    const validatedQuestions = validateQuiz({ questions });
-
-    res.json({ questions: validatedQuestions });
+    res.json({ questions });
   } catch (error) {
     console.error('Error generating quiz:', error);
     res.status(500).json({ 
-      error: 'Failed to generate quiz',
-      details: error.message,
-      fallback: FALLBACK_QUESTIONS
+      message: error.message || 'Failed to generate quiz questions',
+      details: error.details || null
     });
   }
 });
