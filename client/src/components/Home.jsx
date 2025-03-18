@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Layout, Row, Col, Card, Button, Statistic, Calendar, Timeline, Avatar } from 'antd';
+import { Layout, Row, Col, Card, Button, Statistic, Calendar, Timeline, Avatar, Alert } from 'antd';
 import { BookOutlined, RocketOutlined, BulbOutlined, TrophyOutlined, 
          ScheduleOutlined, TeamOutlined, FileTextOutlined, StarOutlined, NotificationOutlined } from '@ant-design/icons';
 import { useAuth } from '../context/AuthContext';
@@ -16,7 +16,9 @@ function Home() {
   const [quote, setQuote] = useState('');
   const [source, setSource] = useState('');
   const [quoteError, setQuoteError] = useState(false);
+  const [errorMessage, setErrorMessage] = useState('');
   const [quoteLoading, setQuoteLoading] = useState(true);
+  const [isGemini, setIsGemini] = useState(false);
 
   useEffect(() => {
     let mounted = true;
@@ -29,11 +31,18 @@ function Home() {
         if (mounted) {
           setQuote(response.quote);
           setSource(response.source);
+          setIsGemini(response.isGemini);
+          
+          if (response.error) {
+            setQuoteError(true);
+            setErrorMessage(response.message || 'Unknown error');
+          }
         }
       } catch (error) {
         console.error('Error fetching quote:', error);
         if (mounted) {
           setQuoteError(true);
+          setErrorMessage(error.message || 'Failed to fetch quote');
         }
       } finally {
         if (mounted) {
@@ -56,9 +65,16 @@ function Home() {
       const response = await getGeminiResponse();
       setQuote(response.quote);
       setSource(response.source);
+      setIsGemini(response.isGemini);
+      
+      if (response.error) {
+        setQuoteError(true);
+        setErrorMessage(response.message || 'Unknown error');
+      }
     } catch (error) {
       console.error('Error fetching quote:', error);
       setQuoteError(true);
+      setErrorMessage(error.message || 'Failed to fetch quote');
     } finally {
       setQuoteLoading(false);
     }
@@ -107,19 +123,24 @@ function Home() {
                 <p className="quote-text">Loading your daily motivation...</p>
               ) : quoteError ? (
                 <div>
-                  <p className="quote-text error">Unable to load quote</p>
-                  <Button onClick={fetchNewQuote} type="link">Try Again</Button>
+                  <Alert
+                    message="Gemini API Error"
+                    description={quote || errorMessage || "Unable to connect to Gemini API"}
+                    type="error"
+                    showIcon
+                  />
+                  <Button onClick={fetchNewQuote} type="primary" style={{ marginTop: '10px' }}>Try Again</Button>
                 </div>
               ) : (
                 <blockquote>
                   "{quote}"
                   <footer>
-                    — {source || 'Gemini AI'}
+                    — {source || 'Unknown'}
                   </footer>
                 </blockquote>
               )}
               {!quoteLoading && !quoteError && (
-                <Button onClick={fetchNewQuote} type="link">Get New Quote</Button>
+                <Button onClick={fetchNewQuote} type="primary">Get New Quote</Button>
               )}
             </div>
           </Card>

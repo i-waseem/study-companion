@@ -204,6 +204,19 @@
   width: fit-content;
 }
 
+.gemini-badge {
+  display: inline-block;
+  background: linear-gradient(135deg, #4285f4, #34a853, #fbbc05, #ea4335);
+  color: white;
+  font-size: 0.75rem;
+  font-weight: 600;
+  padding: 0.25rem 0.5rem;
+  border-radius: 0.5rem;
+  margin-left: 0.5rem;
+  vertical-align: middle;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
 .welcome-card h1 {
   font-size: 1.75rem;
   margin-bottom: 1rem;

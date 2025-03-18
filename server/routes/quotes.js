@@ -2,18 +2,6 @@ const express = require('express');
 const router = express.Router();
 const { GoogleGenerativeAI } = require('@google/generative-ai');
 
-// Fallback quotes in case of API failure
-const FALLBACK_QUOTES = [
-  {
-    quote: "Education is not preparation for life; education is life itself.",
-    source: "John Dewey"
-  },
-  {
-    quote: "The beautiful thing about learning is that no one can take it away from you.",
-    source: "B.B. King"
-  }
-];
-
 router.get('/', async (req, res) => {
   console.log('=== Quotes Route ===');
   
@@ -26,7 +14,12 @@ router.get('/', async (req, res) => {
 
   try {
     if (!process.env.GEMINI_API_KEY) {
-      throw new Error('Gemini API key is not configured');
+      return res.status(500).json({
+        error: true,
+        message: 'Gemini API key is not configured',
+        quote: 'Error: Gemini API key is missing',
+        source: 'System Error'
+      });
     }
 
     // Initialize Gemini
@@ -86,12 +79,13 @@ router.get('/', async (req, res) => {
       stack: error.stack
     });
 
-    // Return a fallback quote
-    const fallbackQuote = FALLBACK_QUOTES[Math.floor(Math.random() * FALLBACK_QUOTES.length)];
-    res.json({
-      ...fallbackQuote,
-      isGemini: false,
-      error: error.message
+    // Return an error message instead of a fallback quote
+    res.status(500).json({
+      error: true,
+      message: error.message,
+      quote: `Error: ${error.message}`,
+      source: 'API Error',
+      isGemini: false
     });
   }
 });

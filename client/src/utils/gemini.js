@@ -1,13 +1,5 @@
 import api from '../api/config';
 
-const FALLBACK_QUOTES = [
-    "Education is not about filling a pail, but lighting a fire.",
-    "The pursuit of knowledge is a lifelong journey, where the destination is not the end, but the growth that unfolds along the way.",
-    "Embrace the journey of learning, for it is an endless path that leads to the heights of wisdom and personal fulfillment.",
-    "Every challenge in learning is a stepping stone to greater understanding.",
-    "In the garden of knowledge, every question you ask plants a seed of wisdom."
-];
-
 export const getGeminiResponse = async () => {
   try {
     console.log('Requesting quote from server...');
@@ -25,7 +17,12 @@ export const getGeminiResponse = async () => {
       response: error.response?.data,
       status: error.response?.status
     });
-    throw error;
+    return {
+      quote: `Error: ${error.message || 'Failed to fetch quote'}`,
+      source: 'API Error',
+      isGemini: false,
+      error: true
+    };
   }
 };
 
