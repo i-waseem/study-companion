@@ -10,7 +10,7 @@ const app = express();
 app.use(express.json());
 app.use(cookieParser());
 app.use(cors({
-  origin: 'http://localhost:5173',
+  origin: ['http://localhost:5173', 'http://localhost:5174'],
   credentials: true
 }));
 
@@ -18,13 +18,26 @@ app.use(cors({
 const authRoutes = require('./routes/auth');
 const quizRoutes = require('./routes/quiz');
 const progressRoutes = require('./routes/progress');
-const notesRoutes = require('./routes/notes');
+const curriculumRoutes = require('./routes/curriculum');
+const quotesRoutes = require('./routes/quotes');
+const userRoutes = require('./routes/user');
+const notificationsRoutes = require('./routes/notifications');
+const achievementsRoutes = require('./routes/achievements');
 
 // Use routes
 app.use('/api/auth', authRoutes);
 app.use('/api/quiz', quizRoutes);
 app.use('/api/progress', progressRoutes);
-app.use('/api/notes', notesRoutes);
+app.use('/api/curriculum', curriculumRoutes);
+app.use('/api/quotes', quotesRoutes);
+app.use('/api/user', userRoutes);
+app.use('/api/notifications', notificationsRoutes);
+app.use('/api/achievements', achievementsRoutes);
+
+// Test endpoint
+app.get('/api/test', (req, res) => {
+  res.json({ message: 'Server is running properly' });
+});
 
 // Connect to MongoDB
 mongoose.connect(process.env.MONGODB_URI)

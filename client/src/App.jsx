@@ -49,6 +49,11 @@ function AppRoutes() {
               <Quiz />
             </ProtectedRoute>
           } />
+          <Route path="/subject-selection/:subject" element={
+            <ProtectedRoute>
+              <SubjectSelection />
+            </ProtectedRoute>
+          } />
           <Route path="/subjects" element={
             <ProtectedRoute>
               <Subjects />

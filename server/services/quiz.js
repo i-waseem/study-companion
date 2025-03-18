@@ -13,11 +13,11 @@ async function generateQuizQuestions({ subject, topic, subtopic, learningObjecti
       learningObjectives
     });
 
-    const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash' });
+    const model = genAI.getGenerativeModel({ model: 'models/gemini-2.0-flash' });
 
     const prompt = `Create a quiz about ${subtopic} in ${subject} (${topic}). 
 Use these specific learning objectives:
-${learningObjectives.map(obj => '- ' + obj).join('\n')}
+${learningObjectives ? learningObjectives.map(obj => '- ' + obj).join('\n') : 'General understanding of the topic'}
 
 Return EXACTLY 10 questions in this format:
 {
@@ -87,7 +87,7 @@ async function testGeminiAPI() {
     console.log('Testing Gemini API connection...');
     console.log('API Key present:', !!process.env.GEMINI_API_KEY);
     
-    const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash' });
+    const model = genAI.getGenerativeModel({ model: 'models/gemini-2.0-flash' });
     
     console.log('Model configuration:', {
       name: model.model

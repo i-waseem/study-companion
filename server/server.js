@@ -1,18 +1,19 @@
 // Load environment variables first
-require('dotenv').config();
+const path = require('path');
+require('dotenv').config({ path: path.resolve(__dirname, '.env') });
 
 // Debug environment variables
 console.log('Environment variables loaded:', {
   NODE_ENV: process.env.NODE_ENV,
   PORT: process.env.PORT,
-  GEMINI_API_KEY: process.env.GEMINI_API_KEY ? 'Present' : 'Missing'
+  GEMINI_API_KEY: process.env.GEMINI_API_KEY ? 'Present' : 'Missing',
+  MONGODB_URI: process.env.MONGODB_URI ? 'Present' : 'Missing'
 });
 
 const express = require('express');
 const mongoose = require('mongoose');
 const cors = require('cors');
 const cookieParser = require('cookie-parser');
-const path = require('path');
 
 const app = express();
 

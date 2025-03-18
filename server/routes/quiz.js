@@ -4,18 +4,15 @@ const auth = require('../middleware/auth');
 const Curriculum = require('../models/Curriculum');
 const { generateQuizQuestions, testGeminiAPI } = require('../services/quiz');
 
-// Debug route to check environment
+// Debug route to check environment variables
 router.get('/debug', auth, async (req, res) => {
   const envVars = {
     GEMINI_API_KEY: process.env.GEMINI_API_KEY ? 'Set (length: ' + process.env.GEMINI_API_KEY.length + ')' : 'Not set',
     NODE_ENV: process.env.NODE_ENV,
-    PORT: process.env.PORT
+    PORT: process.env.PORT,
+    MONGODB_URI: process.env.MONGODB_URI ? 'Set' : 'Not set'
   };
-  
-  res.json({ 
-    env: envVars,
-    time: new Date().toISOString()
-  });
+  res.json({ env: envVars });
 });
 
 // Debug route to test Gemini API

@@ -12,7 +12,7 @@ function Quiz() {
   const { subjectId, topicId, subtopicId } = useParams();
   const [questions, setQuestions] = useState([]);
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
-  const [selectedAnswer, setSelectedAnswer] = useState(null);
+  const [selectedAnswerIndex, setSelectedAnswerIndex] = useState(null);
   const [showExplanation, setShowExplanation] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -60,9 +60,11 @@ function Quiz() {
           throw new Error('Invalid quiz data received');
         }
 
+        console.log('Quiz data received:', response.data);
+
         setQuestions(response.data.questions);
         setCurrentQuestionIndex(0);
-        setSelectedAnswer(null);
+        setSelectedAnswerIndex(null);
         setShowExplanation(false);
         setScore(0);
         setQuizCompleted(false);
@@ -78,14 +80,14 @@ function Quiz() {
     generateQuiz();
   }, [subjectId, topicId, subtopicId]);
 
-  const handleAnswerSelect = (answer) => {
-    setSelectedAnswer(answer);
+  const handleAnswerSelect = (index) => {
+    setSelectedAnswerIndex(index);
   };
 
   const handleNextQuestion = () => {
     if (currentQuestionIndex < questions.length - 1) {
       setCurrentQuestionIndex(currentQuestionIndex + 1);
-      setSelectedAnswer(null);
+      setSelectedAnswerIndex(null);
       setShowExplanation(false);
       setIsCorrect(null);
     } else {
@@ -95,7 +97,7 @@ function Quiz() {
 
   const handleCheckAnswer = () => {
     const currentQuestion = questions[currentQuestionIndex];
-    const correct = selectedAnswer === currentQuestion.correctAnswer;
+    const correct = selectedAnswerIndex === currentQuestion.correctAnswer;
     setIsCorrect(correct);
     setShowExplanation(true);
     if (correct) {
@@ -176,12 +178,12 @@ function Quiz() {
             <Title level={4}>{currentQuestion.question}</Title>
             <Radio.Group
               onChange={(e) => handleAnswerSelect(e.target.value)}
-              value={selectedAnswer}
+              value={selectedAnswerIndex}
               disabled={showExplanation}
             >
               <Space direction="vertical" style={{ width: '100%' }}>
                 {currentQuestion.options.map((option, index) => (
-                  <Radio key={index} value={option} className="quiz-option">
+                  <Radio key={index} value={index} className="quiz-option">
                     {option}
                   </Radio>
                 ))}
@@ -204,7 +206,7 @@ function Quiz() {
               <Button
                 type="primary"
                 onClick={handleCheckAnswer}
-                disabled={selectedAnswer === null}
+                disabled={selectedAnswerIndex === null}
                 block
               >
                 Check Answer

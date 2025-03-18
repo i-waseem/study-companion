@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 import { Card, Select, Button, Typography, Alert, Spin } from 'antd';
 import api from '../api/config';
 import './SubjectSelection.css';
@@ -9,34 +9,69 @@ const { Option } = Select;
 
 function SubjectSelection() {
   const navigate = useNavigate();
+  const { subject } = useParams(); // Get subject from URL params
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [curriculum, setCurriculum] = useState(null);
+  const [selectedSubject, setSelectedSubject] = useState(subject || 'computer-science');
   const [selectedTopic, setSelectedTopic] = useState('');
   const [selectedSubtopic, setSelectedSubtopic] = useState('');
+  const [subjects, setSubjects] = useState([]);
 
-  // Fetch curriculum data
+  // Fetch available subjects
   useEffect(() => {
-    const fetchCurriculum = async () => {
+    const fetchSubjects = async () => {
       try {
         setLoading(true);
-        setError(null);
-        const response = await api.get('/curriculum/o-level/computer-science');
-        console.log('Curriculum data:', response.data);
-        if (response.data && response.data.topics) {
-          setCurriculum(response.data);
-        } else {
-          throw new Error('Invalid curriculum data format');
+        const response = await api.get('/curriculum/subjects');
+        console.log('Subjects response:', response.data);
+        if (response.data && Array.isArray(response.data)) {
+          setSubjects(response.data);
         }
       } catch (err) {
-        console.error('Failed to fetch curriculum:', err);
-        setError('Failed to fetch curriculum data. Please try refreshing the page.');
+        console.error('Failed to fetch subjects:', err);
+        setError('Failed to load subjects. Please refresh the page.');
       } finally {
         setLoading(false);
       }
     };
-    fetchCurriculum();
+    fetchSubjects();
   }, []);
+
+  // Fetch curriculum data for selected subject
+  useEffect(() => {
+    const fetchCurriculum = async () => {
+      if (!selectedSubject) return;
+      
+      try {
+        setLoading(true);
+        setError(null);
+        console.log('Fetching curriculum for:', selectedSubject);
+        const response = await api.get(`/curriculum/o-level/${selectedSubject}`);
+        console.log('Curriculum data:', response.data);
+        if (response.data && response.data.topics) {
+          setCurriculum(response.data);
+          setSelectedTopic('');
+          setSelectedSubtopic('');
+        } else {
+          throw new Error('Invalid curriculum data format');
+        }
+      } catch (err) {
+        console.error(`Failed to fetch curriculum for ${selectedSubject}:`, err);
+        setError(`Failed to fetch curriculum data for ${selectedSubject}. Please try refreshing the page.`);
+        setCurriculum(null);
+      } finally {
+        setLoading(false);
+      }
+    };
+    
+    fetchCurriculum();
+  }, [selectedSubject]);
+
+  const handleSubjectChange = (subject) => {
+    console.log('Subject changed to:', subject);
+    setSelectedSubject(subject);
+  };
 
   const handleTopicChange = (topicName) => {
     console.log('Topic changed to:', topicName);
@@ -69,7 +104,7 @@ function SubjectSelection() {
       }
 
       // Navigate to the quiz with encoded parameters
-      const encodedSubject = encodeURIComponent('computer-science');
+      const encodedSubject = encodeURIComponent(selectedSubject);
       const encodedTopic = encodeURIComponent(selectedTopic);
       navigate(`/quiz/${encodedSubject}/${encodedTopic}/${subtopicIndex}`);
     } catch (error) {
@@ -78,13 +113,13 @@ function SubjectSelection() {
     }
   };
 
-  if (loading) {
+  if (loading && !curriculum && subjects.length === 0) {
     return (
       <div className="subject-selection-container">
         <Card>
           <div style={{ textAlign: 'center', padding: '2rem' }}>
             <Spin size="large" />
-            <p style={{ marginTop: '1rem' }}>Loading curriculum...</p>
+            <p style={{ marginTop: '1rem' }}>Loading subjects...</p>
           </div>
         </Card>
       </div>
@@ -113,10 +148,15 @@ function SubjectSelection() {
             <label>Select Subject:</label>
             <Select
               style={{ width: '100%' }}
-              value="Computer Science"
-              disabled={true}
+              value={selectedSubject}
+              onChange={handleSubjectChange}
+              loading={loading && subjects.length === 0}
             >
-              <Option value="Computer Science">Computer Science</Option>
+              {subjects.map(subject => (
+                <Option key={subject.urlFriendlySubject} value={subject.urlFriendlySubject}>
+                  {subject.subject}
+                </Option>
+              ))}
             </Select>
           </div>
 
@@ -127,6 +167,8 @@ function SubjectSelection() {
               value={selectedTopic}
               onChange={handleTopicChange}
               placeholder="Choose a topic"
+              loading={loading && selectedSubject}
+              disabled={!curriculum || loading}
             >
               {curriculum?.topics?.map(topic => (
                 <Option key={topic.name} value={topic.name}>{topic.name}</Option>
@@ -142,6 +184,7 @@ function SubjectSelection() {
                 value={selectedSubtopic}
                 onChange={handleSubtopicChange}
                 placeholder="Choose a subtopic"
+                disabled={!selectedTopic || loading}
               >
                 {curriculum?.topics
                   .find(t => t.name === selectedTopic)

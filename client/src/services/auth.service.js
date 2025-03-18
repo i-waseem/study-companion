@@ -11,9 +11,10 @@ class AuthService {
         password
       });
       
-      if (response.data.token) {
+      // The server is using cookies for auth, not sending tokens in the response
+      // So we should only store the user data
+      if (response.data.user) {
         localStorage.setItem('user', JSON.stringify(response.data.user));
-        localStorage.setItem('token', response.data.token);
       }
       return response.data;
     } catch (error) {
@@ -30,9 +31,10 @@ class AuthService {
         password
       });
       
-      if (response.data.token) {
+      // The server is using cookies for auth, not sending tokens in the response
+      // So we should only store the user data
+      if (response.data.user) {
         localStorage.setItem('user', JSON.stringify(response.data.user));
-        localStorage.setItem('token', response.data.token);
       }
       return response.data;
     } catch (error) {
@@ -43,7 +45,6 @@ class AuthService {
 
   logout() {
     localStorage.removeItem('user');
-    localStorage.removeItem('token');
   }
 
   getCurrentUser() {
@@ -51,12 +52,8 @@ class AuthService {
     return user ? JSON.parse(user) : null;
   }
 
-  getToken() {
-    return localStorage.getItem('token');
-  }
-
   isLoggedIn() {
-    return !!this.getToken();
+    return !!this.getCurrentUser();
   }
 }
 

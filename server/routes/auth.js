@@ -115,14 +115,13 @@ router.post('/register', async (req, res) => {
     res.cookie('token', token, cookieOptions);
 
     // Set CORS headers explicitly
-    res.header('Access-Control-Allow-Origin', 'http://localhost:5173');
+    res.header('Access-Control-Allow-Origin', req.headers.origin);
     res.header('Access-Control-Allow-Credentials', 'true');
     res.header('Access-Control-Allow-Methods', 'GET,HEAD,PUT,PATCH,POST,DELETE');
     res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization');
 
     console.log('Registration successful, sending response');
     res.status(201).json({
-      message: 'Registration successful',
       user: {
         id: user._id,
         username: user.username,
@@ -231,7 +230,6 @@ router.post('/login', async (req, res) => {
     // Send response
     console.log('Login successful:', email);
     res.json({
-      message: 'Login successful',
       user: {
         id: user._id,
         username: user.username,
