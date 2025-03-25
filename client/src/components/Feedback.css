@@ -4,12 +4,12 @@
 }
 
 .feedback h1 {
-  color: var(--primary-brown);
+  color: #1e3c72;
   margin-bottom: 0.5rem;
 }
 
 .subtitle {
-  color: var(--dark-gray);
+  color: #1e3c72;
   margin-bottom: 2rem;
 }
 
@@ -18,6 +18,7 @@
   padding: 2rem;
   border-radius: 8px;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  border: 1px solid #1e3c72;
 }
 
 .form-group {
@@ -26,7 +27,7 @@
 
 .form-group label {
   display: block;
-  color: var(--primary-brown);
+  color: #1e3c72;
   margin-bottom: 0.5rem;
   font-weight: 500;
 }
@@ -35,7 +36,7 @@
 .form-group textarea {
   width: 100%;
   padding: 0.8rem;
-  border: 1px solid var(--light-gray);
+  border: 1px solid #1e3c72;
   border-radius: 4px;
   font-size: 1rem;
 }
@@ -43,7 +44,7 @@
 .form-group select:focus,
 .form-group textarea:focus {
   outline: none;
-  border-color: var(--primary-brown);
+  border-color: #1e3c72;
 }
 
 .rating-input {
@@ -55,7 +56,7 @@
   background: none;
   border: none;
   font-size: 1.5rem;
-  color: var(--light-gray);
+  color: #1e3c72;
   cursor: pointer;
   transition: color 0.3s;
 }
@@ -65,7 +66,7 @@
 }
 
 .submit-btn {
-  background-color: var(--primary-brown);
+  background-color: #1e3c72;
   color: white;
   border: none;
   padding: 1rem 2rem;
@@ -76,5 +77,5 @@
 }
 
 .submit-btn:hover {
-  background-color: var(--dark-brown);
+  background-color: #2a5298;
 }
