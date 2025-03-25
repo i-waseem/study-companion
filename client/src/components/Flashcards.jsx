@@ -1,47 +1,56 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { useParams } from 'react-router-dom';
+import { message } from 'antd';
+import api from '../api/config';
 import './Flashcards.css';
 
-const sampleDecks = [
-  {
-    id: 1,
-    title: 'Object-Oriented Programming',
-    cards: [
-      {
-        id: 1,
-        front: 'What is Encapsulation?',
-        back: 'Encapsulation is the bundling of data and the methods that operate on that data within a single unit or object, hiding the internal details and providing an interface.'
-      },
-      {
-        id: 2,
-        front: 'What is Inheritance?',
-        back: 'Inheritance is a mechanism that allows a class to inherit properties and methods from another class, supporting code reuse and establishing a relationship between parent and child classes.'
-      },
-      {
-        id: 3,
-        front: 'What is Polymorphism?',
-        back: 'Polymorphism is the ability of different classes to be treated as instances of the same class through base class inheritance. It allows you to perform a single action in different ways.'
-      }
-    ]
-  },
-  {
-    id: 2,
-    title: 'Database Concepts',
-    cards: [
-      {
-        id: 1,
-        front: 'What is ACID in database transactions?',
-        back: 'ACID stands for Atomicity (transactions are all or nothing), Consistency (database remains in a valid state), Isolation (transactions are independent), and Durability (committed transactions are permanent).'
-      }
-    ]
-  }
-];
-
 function Flashcards() {
-  const [decks, setDecks] = useState(sampleDecks);
+  const { subject } = useParams();
+  const [decks, setDecks] = useState([]);
   const [currentDeck, setCurrentDeck] = useState(null);
   const [currentCardIndex, setCurrentCardIndex] = useState(0);
   const [isFlipped, setIsFlipped] = useState(false);
   const [studyMode, setStudyMode] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+
+  // Fetch flashcard decks from curriculum
+  useEffect(() => {
+    const fetchDecks = async () => {
+      try {
+        console.log('Fetching curriculum for subject:', subject);
+        const response = await api.get(`/curriculum/o-level/${subject}`);
+        
+        // Transform curriculum topics into flashcard decks
+        const flashcardDecks = response.data.topics.map(topic => ({
+          id: topic.name.toLowerCase().replace(/\s+/g, '-'),
+          title: topic.name,
+          cards: topic.subtopics.flatMap(subtopic => 
+            subtopic.learningObjectives.map((objective, index) => ({
+              id: `${topic.name}-${subtopic.name}-${index}`.toLowerCase().replace(/\s+/g, '-'),
+              front: generateQuestion(objective),
+              back: objective
+            }))
+          )
+        })).filter(deck => deck.cards.length > 0);
+
+        setDecks([{
+          subject: response.data.subject,
+          decks: flashcardDecks
+        }]);
+        
+        setLoading(false);
+        setError(null);
+      } catch (error) {
+        console.error('Error fetching flashcards:', error);
+        message.error('Failed to load flashcards');
+        setError('Failed to load flashcards. Please try again later.');
+        setLoading(false);
+      }
+    };
+
+    fetchDecks();
+  }, [subject]);
 
   const startStudying = (deck) => {
     setCurrentDeck(deck);
@@ -75,17 +84,60 @@ function Flashcards() {
     setIsFlipped(false);
   };
 
+  // Helper function to generate a question from a learning objective
+  const generateQuestion = (objective) => {
+    // Remove any leading/trailing whitespace and periods
+    objective = objective.trim().replace(/\.$/, '');
+
+    // If the objective starts with a question word, return it as is
+    const questionWords = ['what', 'why', 'how', 'when', 'where', 'who', 'which'];
+    if (questionWords.some(word => objective.toLowerCase().startsWith(word))) {
+      return objective + '?';
+    }
+
+    // If the objective starts with "Understand", "Learn", "Know", etc., convert to a question
+    const learningVerbs = ['understand', 'learn', 'know', 'describe', 'explain', 'identify', 'list', 'define'];
+    for (const verb of learningVerbs) {
+      if (objective.toLowerCase().startsWith(verb)) {
+        const question = objective.substring(verb.length).trim();
+        return `What do you ${verb.toLowerCase()} about${question}?`;
+      }
+    }
+
+    // Default: wrap the objective in a general question
+    return `Can you explain ${objective.toLowerCase()}?`;
+  };
+
+  if (loading) {
+    return <div className="loading">Loading flashcards...</div>;
+  }
+
+  if (error) {
+    return <div className="error-message">{error}</div>;
+  }
+
   return (
     <div className="flashcards-container">
       {!studyMode ? (
         <>
-          <h2>Flashcard Decks</h2>
-          <div className="deck-list">
+          <div className="flashcards-header">
+            <h2>Flashcard Decks</h2>
+          </div>
+
+          <div className="decks-grid">
             {decks.map((deck) => (
-              <div key={deck.id} className="deck-card">
-                <h3>{deck.title}</h3>
-                <p>{deck.cards.length} cards</p>
-                <button onClick={() => startStudying(deck)}>Study Now</button>
+              <div key={deck.subject} className="deck-card">
+                <h3>{deck.subject}</h3>
+                <p>{deck.decks.reduce((sum, d) => sum + d.cards.length, 0)} cards total</p>
+                <div className="deck-topics">
+                  {deck.decks.map((d) => (
+                    <div key={d.title} className="deck-topic">
+                      <h4>{d.title}</h4>
+                      <p>{d.cards.length} cards</p>
+                      <button onClick={() => startStudying(d)}>Study Now</button>
+                    </div>
+                  ))}
+                </div>
               </div>
             ))}
           </div>
@@ -106,9 +158,15 @@ function Flashcards() {
             <div className="flashcard-inner">
               <div className="flashcard-front">
                 <p>{currentDeck.cards[currentCardIndex].front}</p>
+                <button className="show-answer" onClick={flipCard}>
+                  Show Answer
+                </button>
               </div>
               <div className="flashcard-back">
                 <p>{currentDeck.cards[currentCardIndex].back}</p>
+                <button className="show-question" onClick={flipCard}>
+                  Show Question
+                </button>
               </div>
             </div>
           </div>
@@ -120,7 +178,6 @@ function Flashcards() {
             >
               Previous
             </button>
-            <button onClick={flipCard}>Flip</button>
             <button 
               onClick={nextCard}
               disabled={currentCardIndex === currentDeck.cards.length - 1}

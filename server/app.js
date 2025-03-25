@@ -23,6 +23,7 @@ const quotesRoutes = require('./routes/quotes');
 const userRoutes = require('./routes/user');
 const notificationsRoutes = require('./routes/notifications');
 const achievementsRoutes = require('./routes/achievements');
+const flashcardsRoutes = require('./routes/flashcards');
 
 // Use routes
 app.use('/api/auth', authRoutes);
@@ -33,6 +34,7 @@ app.use('/api/quotes', quotesRoutes);
 app.use('/api/user', userRoutes);
 app.use('/api/notifications', notificationsRoutes);
 app.use('/api/achievements', achievementsRoutes);
+app.use('/api/flashcards', flashcardsRoutes);
 
 // Test endpoint
 app.get('/api/test', (req, res) => {

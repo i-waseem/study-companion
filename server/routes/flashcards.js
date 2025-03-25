@@ -73,7 +73,6 @@ router.get('/:gradeLevel/:subject', auth, async (req, res) => {
     console.log(`Generated ${flashcardDecks.length} decks with a total of ${flashcardDecks.reduce((sum, deck) => sum + deck.cards.length, 0)} cards`);
 
     res.json({ 
-      gradeLevel: formattedGradeLevel,
       subject: formattedSubject,
       decks: flashcardDecks 
     });
@@ -85,30 +84,26 @@ router.get('/:gradeLevel/:subject', auth, async (req, res) => {
 
 // Helper function to generate a question from a learning objective
 function generateFlashcardQuestion(objective, subtopicName) {
-  // Remove common starting phrases to create a question
-  let question = objective
-    .replace(/^Understand /, '')
-    .replace(/^Explain /, '')
-    .replace(/^Define /, '')
-    .replace(/^Identify /, '')
-    .replace(/^Analyze /, '')
-    .replace(/^Compare /, '')
-    .replace(/^Describe /, '');
-  
-  // Capitalize first letter
-  question = question.charAt(0).toUpperCase() + question.slice(1);
-  
-  // Add a question mark if it doesn't end with one
-  if (!question.endsWith('?')) {
-    // Convert statement to question format
-    if (question.includes(' and ')) {
-      question = `What are the key points about ${question}?`;
-    } else {
-      question = `Can you explain ${question.toLowerCase()}?`;
+  // Remove any leading/trailing whitespace and periods
+  objective = objective.trim().replace(/\.$/, '');
+
+  // If the objective starts with a question word, return it as is
+  const questionWords = ['what', 'why', 'how', 'when', 'where', 'who', 'which'];
+  if (questionWords.some(word => objective.toLowerCase().startsWith(word))) {
+    return objective + '?';
+  }
+
+  // If the objective starts with "Understand", "Learn", "Know", etc., convert to a question
+  const learningVerbs = ['understand', 'learn', 'know', 'describe', 'explain', 'identify', 'list', 'define'];
+  for (const verb of learningVerbs) {
+    if (objective.toLowerCase().startsWith(verb)) {
+      const question = objective.substring(verb.length).trim();
+      return `What do you ${verb.toLowerCase()} about${question}?`;
     }
   }
-  
-  return question;
+
+  // Default: wrap the objective in a general question
+  return `Can you explain ${objective.toLowerCase()}?`;
 }
 
 module.exports = router;

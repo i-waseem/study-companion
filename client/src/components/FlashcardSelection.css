@@ -1,0 +1,49 @@
+.flashcard-selection-container {
+  padding: 2rem;
+  max-width: 800px;
+  margin: 0 auto;
+}
+
+.selection-card {
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.selection-form {
+  margin-top: 2rem;
+}
+
+.form-item {
+  margin-bottom: 1.5rem;
+}
+
+.form-item label {
+  display: block;
+  margin-bottom: 0.5rem;
+  font-weight: 500;
+  color: #1e3c72;
+}
+
+/* Ant Design Select customization */
+.ant-select-selector {
+  border-radius: 6px !important;
+}
+
+.ant-select-selection-placeholder {
+  color: #8c8c8c !important;
+}
+
+/* Button customization */
+.ant-btn-primary {
+  background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+  border: none;
+  height: 40px;
+  font-size: 16px;
+  font-weight: 500;
+  text-shadow: none;
+  border-radius: 6px;
+}
+
+.ant-btn-primary:hover {
+  background: linear-gradient(135deg, #2a5298 0%, #1e3c72 100%);
+}

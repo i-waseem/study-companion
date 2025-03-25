@@ -9,6 +9,7 @@ import SubjectSelection from './components/SubjectSelection';
 import Home from './components/Home';
 import Subjects from './components/Subjects';
 import Flashcards from './components/Flashcards';
+import FlashcardSelection from './components/FlashcardSelection';
 import Progress from './components/Progress';
 import Notes from './components/Notes';
 import CareerGuidance from './components/CareerGuidance';
@@ -66,6 +67,11 @@ function AppRoutes() {
             </ProtectedRoute>
           } />
           <Route path="/flashcards" element={
+            <ProtectedRoute>
+              <FlashcardSelection />
+            </ProtectedRoute>
+          } />
+          <Route path="/flashcards/:subject" element={
             <ProtectedRoute>
               <Flashcards />
             </ProtectedRoute>
