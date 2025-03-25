@@ -1,93 +1,188 @@
 import { useState, useEffect } from 'react';
+import { Line } from 'react-chartjs-2';
+import {
+  Chart as ChartJS,
+  CategoryScale,
+  LinearScale,
+  PointElement,
+  LineElement,
+  Title,
+  Tooltip,
+  Legend
+} from 'chart.js';
 import './Dashboard.css';
 
-const motivationalQuotes = [
-  {
-    quote: "The only way to do great work is to love what you do.",
-    author: "Steve Jobs"
-  },
-  {
-    quote: "Success is not final, failure is not fatal: it is the courage to continue that counts.",
-    author: "Winston Churchill"
-  },
-  {
-    quote: "Education is the most powerful weapon which you can use to change the world.",
-    author: "Nelson Mandela"
-  },
-  {
-    quote: "The future belongs to those who believe in the beauty of their dreams.",
-    author: "Eleanor Roosevelt"
-  }
-];
-
-const successStories = [
-  {
-    name: "Sarah Chen",
-    story: "Started learning to code with no experience, landed a job at Google after 12 months of dedicated study."
-  },
-  {
-    name: "James Rodriguez",
-    story: "Balanced full-time work and part-time study, now leads a successful tech startup."
-  },
-  {
-    name: "Priya Patel",
-    story: "Self-taught programmer who became a senior software engineer at Microsoft within 3 years."
-  }
-];
+ChartJS.register(
+  CategoryScale,
+  LinearScale,
+  PointElement,
+  LineElement,
+  Title,
+  Tooltip,
+  Legend
+);
 
 function Dashboard({ user }) {
-  const [inspiration, setInspiration] = useState(null);
-  const [isQuote, setIsQuote] = useState(true);
-
-  useEffect(() => {
-    const randomizeInspiration = () => {
-      // Randomly choose between quote and story
-      const showQuote = Math.random() > 0.5;
-      setIsQuote(showQuote);
-      
-      if (showQuote) {
-        const randomQuote = motivationalQuotes[Math.floor(Math.random() * motivationalQuotes.length)];
-        setInspiration(randomQuote);
-      } else {
-        const randomStory = successStories[Math.floor(Math.random() * successStories.length)];
-        setInspiration(randomStory);
+  const [studyData, setStudyData] = useState({
+    labels: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
+    datasets: [
+      {
+        label: 'Study Hours',
+        data: [2, 3, 1.5, 4, 2.5, 3.5, 2],
+        borderColor: 'var(--primary-brown)',
+        backgroundColor: 'rgba(121, 85, 72, 0.1)',
+        tension: 0.4
       }
-    };
+    ]
+  });
 
-    randomizeInspiration();
-  }, []);
+  const subjects = [
+    {
+      name: 'Economics',
+      progress: 65,
+      topics: 15,
+      totalTopics: 23,
+      nextTopic: 'Market Structures',
+      strongTopics: ['Supply and Demand', 'Price Elasticity'],
+      weakTopics: ['International Trade', 'Market Failure']
+    },
+    {
+      name: 'Pakistan Studies',
+      progress: 45,
+      topics: 9,
+      totalTopics: 20,
+      nextTopic: 'War of Independence',
+      strongTopics: ['Geographic Regions', 'Natural Resources'],
+      weakTopics: ['Constitutional Development', 'Foreign Relations']
+    }
+  ];
+
+  const chartOptions = {
+    responsive: true,
+    plugins: {
+      legend: {
+        position: 'top'
+      },
+      title: {
+        display: true,
+        text: 'Weekly Study Hours'
+      }
+    },
+    scales: {
+      y: {
+        beginAtZero: true,
+        title: {
+          display: true,
+          text: 'Hours'
+        }
+      }
+    }
+  };
 
   return (
     <div className="dashboard">
-      <h1 className="welcome-message">Welcome back, {user?.username}! 👋</h1>
-      
-      <div className="quote-container">
-        {inspiration && isQuote ? (
-          <>
-            <p className="quote">"{inspiration.quote}"</p>
-            <p className="author">- {inspiration.author}</p>
-          </>
-        ) : inspiration && (
-          <>
-            <h3 className="story-title">Success Story: {inspiration.name}</h3>
-            <p className="story">{inspiration.story}</p>
-          </>
-        )}
+      <div className="dashboard-header">
+        <h1>Dashboard</h1>
+        <div className="streak-counter">
+          <span className="streak-number">5</span>
+          <span className="streak-label">Day Streak 🔥</span>
+        </div>
       </div>
 
-      <div className="quick-stats">
-        <div className="stat-card">
-          <h3>Study Time</h3>
-          <p>2 hours today</p>
-        </div>
-        <div className="stat-card">
-          <h3>Quizzes Completed</h3>
-          <p>3 this week</p>
-        </div>
-        <div className="stat-card">
-          <h3>Flashcards Mastered</h3>
-          <p>25 cards</p>
-        </div>
+      <div className="dashboard-grid">
+        {/* Study Progress Overview */}
+        <section className="progress-overview card">
+          <h2>Study Progress</h2>
+          <div className="chart-container">
+            <Line options={chartOptions} data={studyData} />
+          </div>
+        </section>
+
+        {/* Quick Actions */}
+        <section className="quick-actions card">
+          <h2>Quick Actions</h2>
+          <div className="action-buttons">
+            <button className="action-btn quiz-btn">
+              <span className="icon">📝</span>
+              Start Quiz
+            </button>
+            <button className="action-btn flashcard-btn">
+              <span className="icon">🗂️</span>
+              Flashcards
+            </button>
+            <button className="action-btn goals-btn">
+              <span className="icon">🎯</span>
+              Set Goals
+            </button>
+          </div>
+        </section>
+
+        {/* Subject Cards */}
+        <section className="subject-cards">
+          {subjects.map(subject => (
+            <div key={subject.name} className="subject-card card">
+              <div className="subject-header">
+                <h3>{subject.name}</h3>
+                <div className="progress-circle">
+                  <svg viewBox="0 0 36 36">
+                    <path
+                      d="M18 2.0845
+                        a 15.9155 15.9155 0 0 1 0 31.831
+                        a 15.9155 15.9155 0 0 1 0 -31.831"
+                      fill="none"
+                      stroke="var(--light-gray)"
+                      strokeWidth="3"
+                    />
+                    <path
+                      d="M18 2.0845
+                        a 15.9155 15.9155 0 0 1 0 31.831
+                        a 15.9155 15.9155 0 0 1 0 -31.831"
+                      fill="none"
+                      stroke="var(--primary-brown)"
+                      strokeWidth="3"
+                      strokeDasharray={`${subject.progress}, 100`}
+                    />
+                    <text x="18" y="20.35" className="progress-percentage">
+                      {subject.progress}%
+                    </text>
+                  </svg>
+                </div>
+              </div>
+              <div className="subject-progress">
+                <p>{subject.topics} of {subject.totalTopics} topics completed</p>
+                <p className="next-topic">Next: {subject.nextTopic}</p>
+              </div>
+            </div>
+          ))}
+        </section>
+
+        {/* Study Analytics */}
+        <section className="study-analytics card">
+          <h2>Study Analytics</h2>
+          {subjects.map(subject => (
+            <div key={subject.name} className="subject-analytics">
+              <h3>{subject.name}</h3>
+              <div className="topics-analysis">
+                <div className="strong-topics">
+                  <h4>Strong Topics</h4>
+                  <ul>
+                    {subject.strongTopics.map(topic => (
+                      <li key={topic}>{topic}</li>
+                    ))}
+                  </ul>
+                </div>
+                <div className="weak-topics">
+                  <h4>Areas for Improvement</h4>
+                  <ul>
+                    {subject.weakTopics.map(topic => (
+                      <li key={topic}>{topic}</li>
+                    ))}
+                  </ul>
+                </div>
+              </div>
+            </div>
+          ))}
+        </section>
       </div>
     </div>
   );

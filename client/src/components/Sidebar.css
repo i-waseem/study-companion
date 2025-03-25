@@ -34,7 +34,7 @@
 
 .user-info h3 {
   margin: 0;
-  font-size: 1.2rem;
+  font-size: 1.6rem;
   font-weight: 600;
 }
 
@@ -67,6 +67,7 @@
   border-radius: 8px;
   transition: background-color 0.2s;
   margin-bottom: 0.5rem;
+  font-size: 1.1rem;
 }
 
 .nav-item i {
@@ -122,6 +123,7 @@
   justify-content: center;
   gap: 0.5rem;
   transition: background-color 0.2s;
+  font-size: 1.1rem;
 }
 
 .logout-button:hover {

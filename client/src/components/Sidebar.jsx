@@ -35,6 +35,9 @@ function Sidebar() {
         <Link to="/" className={`nav-item ${isActive('/')}`}>
           Home
         </Link>
+        <Link to="/dashboard" className={`nav-item ${isActive('/dashboard')}`}>
+          Dashboard
+        </Link>
         <Link to="/subjects" className={`nav-item ${isActive('/subjects')}`}>
           Subjects
         </Link>

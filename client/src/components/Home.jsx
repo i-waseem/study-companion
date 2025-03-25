@@ -100,6 +100,10 @@ function Home() {
     navigate('/career-guidance');
   };
 
+  const handleViewDashboard = () => {
+    navigate('/dashboard');
+  };
+
   return (
     <Layout className="home-layout">
       <Content className="home-content">
@@ -147,8 +151,8 @@ function Home() {
         </div>
 
         <div className="actions-section">
-          <Row gutter={[16, 0]}>
-            <Col xs={8}>
+          <Row gutter={[16, 16]}>
+            <Col xs={6}>
               <Card className="action-card whats-new-card">
                 <NotificationOutlined className="card-icon" />
                 <h3>What's New</h3>
@@ -165,7 +169,7 @@ function Home() {
                 />
               </Card>
             </Col>
-            <Col xs={8}>
+            <Col xs={6}>
               <Card 
                 className="action-card quiz-card"
                 onClick={handleStartQuiz}
@@ -176,7 +180,7 @@ function Home() {
                 <p>Test your knowledge</p>
               </Card>
             </Col>
-            <Col xs={8}>
+            <Col xs={6}>
               <Card 
                 className="action-card flashcard-card"
                 onClick={handleViewFlashcards}
@@ -185,6 +189,17 @@ function Home() {
                 <BulbOutlined className="card-icon" />
                 <h3>Flashcards</h3>
                 <p>Review with flashcards</p>
+              </Card>
+            </Col>
+            <Col xs={6}>
+              <Card 
+                className="action-card dashboard-card"
+                onClick={handleViewDashboard}
+                hoverable
+              >
+                <TrophyOutlined className="card-icon" />
+                <h3>Dashboard</h3>
+                <p>View your progress</p>
               </Card>
             </Col>
           </Row>

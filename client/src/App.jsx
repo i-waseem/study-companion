@@ -14,6 +14,7 @@ import Notes from './components/Notes';
 import CareerGuidance from './components/CareerGuidance';
 import Feedback from './components/Feedback';
 import ProfileSettings from './components/ProfileSettings';
+import Dashboard from './components/Dashboard';
 import './App.css';
 
 function ProtectedRoute({ children }) {
@@ -37,6 +38,11 @@ function AppRoutes() {
           <Route path="/" element={
             <ProtectedRoute>
               <Home />
+            </ProtectedRoute>
+          } />
+          <Route path="/dashboard" element={
+            <ProtectedRoute>
+              <Dashboard />
             </ProtectedRoute>
           } />
           <Route path="/quiz" element={
