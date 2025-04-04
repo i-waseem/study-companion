@@ -4,15 +4,7 @@ import api from '../api/config';
 class AuthService {
   async register(username, email, password) {
     try {
-      console.log('Attempting registration with:', { username, email });
-      const response = await api.post('/auth/register', {
-        username,
-        email,
-        password
-      });
-      
-      // The server is using cookies for auth, not sending tokens in the response
-      // So we should only store the user data
+      const response = await api.register({ username, email, password });
       if (response.data.user) {
         localStorage.setItem('user', JSON.stringify(response.data.user));
       }
@@ -25,14 +17,7 @@ class AuthService {
 
   async login(email, password) {
     try {
-      console.log('Attempting login with:', { email });
-      const response = await api.post('/auth/login', {
-        email,
-        password
-      });
-      
-      // The server is using cookies for auth, not sending tokens in the response
-      // So we should only store the user data
+      const response = await api.login({ email, password });
       if (response.data.user) {
         localStorage.setItem('user', JSON.stringify(response.data.user));
       }
@@ -43,8 +28,12 @@ class AuthService {
     }
   }
 
-  logout() {
-    localStorage.removeItem('user');
+  async logout() {
+    try {
+      await api.logout();
+    } finally {
+      localStorage.removeItem('user');
+    }
   }
 
   getCurrentUser() {

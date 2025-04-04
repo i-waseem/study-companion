@@ -1,4 +1,6 @@
 const User = require('../models/User');
+const Achievement = require('../models/Achievement');
+const { checkAchievements, achievementDefinitions } = require('../utils/achievements');
 
 // XP requirements for each level
 const LEVEL_XP_REQUIREMENTS = {
@@ -7,35 +9,32 @@ const LEVEL_XP_REQUIREMENTS = {
   3: 250,
   4: 500,
   5: 1000,
-  // Add more levels as needed
+  6: 2000,
+  7: 3500,
+  8: 5500,
+  9: 8000,
+  10: 11000
 };
 
 // XP rewards for different actions
 const XP_REWARDS = {
-  quiz: {
-    completion: 50,
-    perfectScore: 200,
-    improvement: 100
-  },
   flashcard: {
-    creation: 20,
-    practice: 30,
-    mastery: 100
+    review: 5,           // Per card reviewed
+    mastery: 20,         // Per card mastered
+    setCompletion: 50,   // Completing a full set
+    perfectRecall: 100   // All cards in set rated 5
   },
-  notes: {
-    creation: 30,
-    update: 10,
-    sharing: 50
+  streaks: {
+    daily: 25,          // Daily login
+    threeDay: 50,       // 3-day streak
+    weekly: 100,        // 7-day streak
+    monthly: 500        // 30-day streak
   },
-  study: {
-    session: 10, // per 30 minutes
-    streak: 20,  // per day
-    goalAchieved: 50
-  },
-  career: {
-    assessment: 50,
-    goalSetting: 30,
-    research: 20
+  achievements: {
+    common: 50,
+    rare: 100,
+    epic: 250,
+    legendary: 500
   }
 };
 
@@ -63,7 +62,12 @@ class AchievementService {
       // Handle level up
       if (newLevel > currentLevel) {
         user.level = newLevel;
-        // You might want to trigger some notification or reward here
+        // Trigger level up notification
+        await this.createNotification(userId, 'level_up', {
+          oldLevel: currentLevel,
+          newLevel,
+          xpForNext: LEVEL_XP_REQUIREMENTS[newLevel + 1]
+        });
       }
 
       await user.save();
@@ -74,82 +78,111 @@ class AchievementService {
     }
   }
 
-  // Award a badge to user
-  static async awardBadge(userId, badgeData) {
+  // Check and award achievements based on progress
+  static async checkAndAwardAchievements(userId, progress) {
     try {
-      const user = await User.findById(userId);
-      if (!user) throw new Error('User not found');
+      let achievement = await Achievement.findOne({ userId });
+      if (!achievement) {
+        achievement = new Achievement({ userId, achievements: [] });
+      }
 
-      // Check if user already has this badge
-      const existingBadge = user.badges.find(b => b.name === badgeData.name);
-      if (existingBadge) {
-        // Update progress if badge exists
-        existingBadge.progress = badgeData.progress;
-        if (existingBadge.progress >= existingBadge.maxProgress) {
-          existingBadge.earnedAt = new Date();
-        }
-      } else {
-        // Add new badge
-        user.badges.push({
-          ...badgeData,
-          earnedAt: badgeData.progress >= badgeData.maxProgress ? new Date() : null
+      const { newAchievements, stats } = await checkAchievements(
+        userId,
+        progress,
+        achievement
+      );
+
+      // Award XP for new achievements
+      for (const achievement of newAchievements) {
+        await this.addXP(
+          userId,
+          XP_REWARDS.achievements[achievement.rarity],
+          'achievement',
+          { type: achievement.type }
+        );
+
+        // Create notification for new achievement
+        await this.createNotification(userId, 'achievement_earned', {
+          achievement: achievement.name,
+          description: achievement.description,
+          icon: achievement.icon,
+          rarity: achievement.rarity
         });
       }
 
-      await user.save();
-      return user.badges;
+      // Update achievements and stats
+      achievement.achievements.push(...newAchievements);
+      achievement.stats = stats;
+      await achievement.save();
+
+      return newAchievements;
     } catch (error) {
-      console.error('Error awarding badge:', error);
+      console.error('Error checking achievements:', error);
       throw error;
     }
   }
 
-  // Update achievement progress
-  static async updateAchievement(userId, achievementName, progress) {
-    try {
-      const user = await User.findById(userId);
-      if (!user) throw new Error('User not found');
-
-      const achievement = user.achievements.find(a => a.name === achievementName);
-      if (!achievement) {
-        throw new Error('Achievement not found');
-      }
-
-      achievement.progress = progress;
-      if (progress >= achievement.target && !achievement.isCompleted) {
-        achievement.isCompleted = true;
-        achievement.unlockedAt = new Date();
-        // Award XP for completing achievement
-        await this.addXP(userId, 100, 'achievement', { achievementName });
-      }
-
-      await user.save();
-      return achievement;
-    } catch (error) {
-      console.error('Error updating achievement:', error);
-      throw error;
-    }
-  }
-
-  // Get user's achievement summary
+  // Get achievement summary for user
   static async getAchievementSummary(userId) {
     try {
-      const user = await User.findById(userId);
-      if (!user) throw new Error('User not found');
+      const achievement = await Achievement.findOne({ userId });
+      if (!achievement) {
+        return {
+          total: 0,
+          recent: [],
+          byRarity: { common: 0, rare: 0, epic: 0, legendary: 0 },
+          stats: {
+            totalStudyTime: 0,
+            longestStreak: 0,
+            totalCardsMastered: 0,
+            perfectRecalls: 0,
+            subjectsCompleted: 0
+          }
+        };
+      }
+
+      // Get achievements earned in the last 7 days
+      const recent = achievement.achievements
+        .filter(a => {
+          const daysSinceEarned = (Date.now() - a.earnedAt.getTime()) / (1000 * 60 * 60 * 24);
+          return daysSinceEarned <= 7;
+        })
+        .sort((a, b) => b.earnedAt - a.earnedAt);
+
+      // Count achievements by rarity
+      const byRarity = achievement.achievements.reduce((acc, a) => {
+        acc[a.rarity] = (acc[a.rarity] || 0) + 1;
+        return acc;
+      }, { common: 0, rare: 0, epic: 0, legendary: 0 });
 
       return {
-        level: user.level,
-        xp: user.xp,
-        nextLevelXP: LEVEL_XP_REQUIREMENTS[user.level + 1] || null,
-        badges: user.badges,
-        achievements: user.achievements,
-        recentUnlocks: [...user.badges, ...user.achievements]
-          .filter(item => item.earnedAt || item.unlockedAt)
-          .sort((a, b) => (b.earnedAt || b.unlockedAt) - (a.earnedAt || a.unlockedAt))
-          .slice(0, 5)
+        total: achievement.achievements.length,
+        recent,
+        byRarity,
+        stats: achievement.stats
       };
     } catch (error) {
       console.error('Error getting achievement summary:', error);
+      throw error;
+    }
+  }
+
+  // Create a notification
+  static async createNotification(userId, type, data) {
+    try {
+      const user = await User.findById(userId);
+      if (!user) throw new Error('User not found');
+
+      user.notifications.push({
+        type,
+        data,
+        createdAt: new Date(),
+        read: false
+      });
+
+      await user.save();
+    } catch (error) {
+      console.error('Error creating notification:', error);
       throw error;
     }
   }

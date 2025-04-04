@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Card, Typography, List, Button, Collapse, Space, Modal, Spin } from 'antd';
+import { Card, Typography, List, Button, Collapse, Space, Modal, Spin, Alert } from 'antd';
 import { CodeOutlined, BookOutlined, LineChartOutlined } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
 import api from '../api/config';
@@ -29,6 +29,7 @@ function Subjects() {
   const [curriculumMap, setCurriculumMap] = useState({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [showAllTopics, setShowAllTopics] = useState({});  // Track expanded state for each subject
 
   useEffect(() => {
     const fetchSubjects = async () => {
@@ -45,7 +46,8 @@ function Subjects() {
           throw new Error('Invalid subjects data format');
         }
         
-        const availableSubjects = subjectsResponse.data;
+        const availableSubjects = subjectsResponse.data.filter(s => s.gradeLevel === 'O-Level');
+        console.log('Filtered O-Level subjects:', availableSubjects);
         setSubjects(availableSubjects);
 
         // Then fetch curriculum for each subject
@@ -54,12 +56,19 @@ function Subjects() {
           try {
             console.log(`Fetching curriculum for ${subject.subject} (${subject.urlFriendlySubject})`);
             const response = await api.get(`/curriculum/o-level/${subject.urlFriendlySubject}`);
-            curriculumData[subject.subject] = response.data;
+            console.log(`Curriculum response for ${subject.subject}:`, response.data);
+            if (response.data && response.data.topics) {
+              curriculumData[subject.subject] = response.data;
+            } else {
+              console.error(`Invalid curriculum data for ${subject.subject}`);
+            }
           } catch (err) {
             console.error(`Failed to fetch curriculum for ${subject.subject}:`, err);
+            setError(prev => prev || 'Failed to fetch some curriculum data');
           }
         }
         
+        console.log('Final curriculum data:', curriculumData);
         setCurriculumMap(curriculumData);
       } catch (err) {
         console.error('Failed to fetch subjects:', err);
@@ -88,7 +97,6 @@ function Subjects() {
     const urlFriendlySubject = selectedSubjectObj.urlFriendlySubject;
     
     if (mode === 'quiz') {
-      // Navigate to subject selection page instead of directly to quiz
       navigate(`/subject-selection/${urlFriendlySubject}`);
     } else if (mode === 'flashcards') {
       navigate(`/flashcards/${urlFriendlySubject}`);
@@ -97,26 +105,21 @@ function Subjects() {
     setSelectedSubject(null);
   };
 
+  const toggleTopics = (subject, event) => {
+    event.stopPropagation();  // Prevent card click when clicking "Show More"
+    setShowAllTopics(prev => ({
+      ...prev,
+      [subject]: !prev[subject]
+    }));
+  };
+
   if (loading) {
     return (
-      <div className="subjects-container">
-        <Card>
-          <Space direction="vertical" align="center" style={{ width: '100%' }}>
-            <Spin size="large" />
-            <Text>Loading subjects...</Text>
-          </Space>
-        </Card>
-      </div>
-    );
-  }
-
-  if (error) {
-    return (
-      <div className="subjects-container">
-        <Card>
-          <Title level={2}>Error</Title>
-          <Text type="danger">{error}</Text>
-        </Card>
+      <div className="loading-container">
+        <Space direction="vertical" align="center">
+          <Spin size="large" />
+          <Text>Loading subjects...</Text>
+        </Space>
       </div>
     );
   }
@@ -124,30 +127,67 @@ function Subjects() {
   return (
     <div className="subjects-container">
       <Title level={2}>O Level Subjects</Title>
-      <Text type="secondary">Select a subject to begin studying.</Text>
+      <p className="subtitle">Select a subject to begin studying.</p>
+
+      {error && (
+        <Alert
+          message="Error"
+          description={error}
+          type="error"
+          showIcon
+          className="error-alert"
+          style={{ marginBottom: '1rem' }}
+        />
+      )}
 
       <div className="subjects-grid">
-        {subjects.map((subject) => (
-          <Card
-            key={subject.subject}
-            hoverable
-            className="subject-card"
-            style={{ borderTop: `2px solid ${colorMap[subject.subject] || '#1890ff'}` }}
-            onClick={() => handleSubjectClick(subject.subject)}
-          >
-            {iconMap[subject.subject] || <BookOutlined />}
-            <Title level={4}>{subject.subject}</Title>
-            <Text>O Level {subject.subject}</Text>
-            <div className="key-topics">
-              <Text strong>Key Topics:</Text>
-              <List
-                size="small"
-                dataSource={curriculumMap[subject.subject]?.topics?.map(t => t.name) || []}
-                renderItem={item => <List.Item>{item}</List.Item>}
-              />
-            </div>
-          </Card>
-        ))}
+        {subjects.map((subject) => {
+          const icon = iconMap[subject.subject] || <BookOutlined />;
+          const color = colorMap[subject.subject] || '#1890ff';
+          const curriculum = curriculumMap[subject.subject];
+          const isExpanded = showAllTopics[subject.subject];
+
+          return (
+            <Card
+              key={subject.urlFriendlySubject}
+              className={`subject-card ${selectedSubject === subject.subject ? 'selected' : ''}`}
+              onClick={() => handleSubjectClick(subject.subject)}
+              style={{ borderColor: color }}
+            >
+              <div className="subject-icon" style={{ color }}>
+                {icon}
+              </div>
+              <Title level={4}>{subject.subject}</Title>
+              <div className="subject-details">
+                <Title level={5}>Key Topics:</Title>
+                {curriculum ? (
+                  <>
+                    <List
+                      size="small"
+                      dataSource={isExpanded ? curriculum.topics : curriculum.topics.slice(0, 3)}
+                      renderItem={topic => (
+                        <List.Item>
+                          <Text>{topic.name}</Text>
+                        </List.Item>
+                      )}
+                    />
+                    {curriculum.topics.length > 3 && (
+                      <Button 
+                        type="link" 
+                        onClick={(e) => toggleTopics(subject.subject, e)}
+                        style={{ padding: 0, height: 'auto' }}
+                      >
+                        {isExpanded ? 'Show Less' : `Show ${curriculum.topics.length - 3} More Topics`}
+                      </Button>
+                    )}
+                  </>
+                ) : (
+                  <Text type="secondary">Loading topics...</Text>
+                )}
+              </div>
+            </Card>
+          );
+        })}
       </div>
 
       <Modal
@@ -157,10 +197,17 @@ function Subjects() {
         footer={null}
       >
         <Space direction="vertical" style={{ width: '100%' }}>
-          <Button block type="primary" onClick={() => handleStudyModeSelect('quiz', selectedSubject)}>
+          <Button
+            type="primary"
+            block
+            onClick={() => handleStudyModeSelect('quiz', selectedSubject)}
+          >
             Take a Quiz
           </Button>
-          <Button block onClick={() => handleStudyModeSelect('flashcards', selectedSubject)}>
+          <Button
+            block
+            onClick={() => handleStudyModeSelect('flashcards', selectedSubject)}
+          >
             Study with Flashcards
           </Button>
         </Space>

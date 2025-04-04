@@ -4,95 +4,63 @@ const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const User = require('../models/User');
 
+// Helper function to set cookie
+const setTokenCookie = (res, token) => {
+  res.cookie('token', token, {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: 'lax',
+    path: '/',
+    maxAge: 24 * 60 * 60 * 1000 // 24 hours
+  });
+};
+
 // Register route
 router.post('/register', async (req, res) => {
   console.log('\n=== Registration Attempt ===');
-  console.log('Request headers:', {
-    origin: req.headers.origin,
-    'content-type': req.headers['content-type'],
-    cookie: req.headers.cookie
-  });
   console.log('Request body:', {
     username: req.body.username,
     email: req.body.email,
-    hasPassword: !!req.body.password,
-    passwordLength: req.body.password?.length
+    hasPassword: !!req.body.password
   });
   
   try {
-    // Check if required environment variables are set
-    if (!process.env.JWT_SECRET) {
-      console.error('JWT_SECRET is not set in environment variables');
-      return res.status(500).json({ message: 'Server configuration error' });
-    }
-
     const { username, email, password } = req.body;
 
     // Input validation
     if (!username || !email || !password) {
-      console.log('Missing required fields:', { 
-        username: !!username, 
-        email: !!email, 
-        password: !!password 
+      console.log('Missing required fields:', {
+        hasUsername: !!username,
+        hasEmail: !!email,
+        hasPassword: !!password
       });
-      return res.status(400).json({ 
-        message: 'Please provide all required fields',
-        fields: {
-          username: !!username,
-          email: !!email,
-          password: !!password
-        }
+      return res.status(400).json({
+        message: 'Please provide all required fields'
       });
     }
 
-    if (password.length < 6) {
-      console.log('Password too short:', password.length);
-      return res.status(400).json({ 
-        message: 'Password must be at least 6 characters long',
-        provided: password.length
+    // Check if user already exists
+    console.log('Checking if user exists:', email);
+    let user = await User.findOne({ email });
+
+    if (user) {
+      console.log('User already exists:', email);
+      return res.status(400).json({
+        message: 'User already exists'
       });
     }
 
-    // Check if user exists
-    console.log('Checking for existing user...');
-    const existingUser = await User.findOne({ 
-      $or: [{ email }, { username }] 
-    });
-
-    if (existingUser) {
-      console.log('User already exists:', {
-        existingEmail: existingUser.email === email,
-        existingUsername: existingUser.username === username
-      });
-      return res.status(400).json({ 
-        message: 'User already exists',
-        conflict: {
-          email: existingUser.email === email,
-          username: existingUser.username === username
-        }
-      });
-    }
-
-    // Hash password
-    console.log('Hashing password...');
-    const salt = await bcrypt.genSalt(10);
-    const hashedPassword = await bcrypt.hash(password, salt);
-
-    // Create user
-    console.log('Creating new user...');
-    const user = new User({
+    // Create new user
+    console.log('Creating new user:', email);
+    user = new User({
       username,
       email,
-      password: hashedPassword
+      password // Will be hashed by the model pre-save hook
     });
 
-    console.log('Saving user to database...');
+    // Save user
     await user.save();
-    console.log('User saved successfully:', {
-      id: user._id,
-      username: user.username,
-      email: user.email
-    });
+    console.log('User saved successfully:', email);
 
     // Create token
     console.log('Creating JWT token...');
@@ -103,27 +71,13 @@ router.post('/register', async (req, res) => {
     );
 
     // Set token in cookie
-    const cookieOptions = {
-      httpOnly: true,
-      secure: false, // Set to true in production
-      sameSite: 'lax',
-      path: '/',
-      maxAge: 24 * 60 * 60 * 1000 // 24 hours
-    };
+    setTokenCookie(res, token);
 
-    console.log('Setting cookie with options:', cookieOptions);
-    res.cookie('token', token, cookieOptions);
-
-    // Set CORS headers explicitly
-    res.header('Access-Control-Allow-Origin', req.headers.origin);
-    res.header('Access-Control-Allow-Credentials', 'true');
-    res.header('Access-Control-Allow-Methods', 'GET,HEAD,PUT,PATCH,POST,DELETE');
-    res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization');
-
-    console.log('Registration successful, sending response');
+    // Return success
+    console.log('Registration successful:', email);
     res.status(201).json({
       user: {
-        id: user._id,
+        userId: user._id,
         username: user.username,
         email: user.email
       }
@@ -136,18 +90,9 @@ router.post('/register', async (req, res) => {
       code: error.code,
       stack: error.stack
     });
-
-    // Handle MongoDB duplicate key errors
-    if (error.code === 11000) {
-      const field = Object.keys(error.keyPattern)[0];
-      return res.status(400).json({
-        message: `${field} already exists`,
-        field: field
-      });
-    }
-
-    res.status(500).json({ 
-      message: 'Error registering user',
+    
+    res.status(500).json({
+      message: 'Registration failed',
       error: error.message,
       details: process.env.NODE_ENV === 'development' ? {
         name: error.name,
@@ -162,8 +107,7 @@ router.post('/login', async (req, res) => {
   console.log('\n=== Login Attempt ===');
   console.log('Request body:', {
     email: req.body.email,
-    hasPassword: !!req.body.password,
-    passwordLength: req.body.password?.length
+    hasPassword: !!req.body.password
   });
   
   try {
@@ -189,15 +133,7 @@ router.post('/login', async (req, res) => {
       return res.status(401).json({ message: 'Invalid credentials' });
     }
 
-    // Log user data (excluding sensitive info)
-    console.log('Found user:', {
-      id: user._id,
-      email: user.email,
-      hasPassword: !!user.password,
-      passwordLength: user.password?.length
-    });
-
-    // Compare password using the model method
+    // Compare password
     console.log('Comparing passwords...');
     const isMatch = await user.comparePassword(password);
     console.log('Password match result:', isMatch);
@@ -216,22 +152,13 @@ router.post('/login', async (req, res) => {
     );
 
     // Set token in cookie
-    const cookieOptions = {
-      httpOnly: true,
-      secure: false, // Set to true in production
-      sameSite: 'lax',
-      path: '/',
-      maxAge: 24 * 60 * 60 * 1000 // 24 hours
-    };
+    setTokenCookie(res, token);
 
-    console.log('Setting cookie with options:', cookieOptions);
-    res.cookie('token', token, cookieOptions);
-
-    // Send response
+    // Return success
     console.log('Login successful:', email);
     res.json({
       user: {
-        id: user._id,
+        userId: user._id,
         username: user.username,
         email: user.email
       }
@@ -244,13 +171,29 @@ router.post('/login', async (req, res) => {
       code: error.code,
       stack: error.stack
     });
-    res.status(500).json({ message: 'Error logging in' });
+    
+    res.status(500).json({
+      message: 'Login failed',
+      error: error.message,
+      details: process.env.NODE_ENV === 'development' ? {
+        name: error.name,
+        code: error.code
+      } : undefined
+    });
   }
 });
 
 // Logout route
 router.post('/logout', (req, res) => {
-  res.clearCookie('token');
+  console.log('\n=== Logout Attempt ===');
+  
+  // Clear the token cookie with the same settings
+  res.clearCookie('token', {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: 'lax',
+    path: '/'
+  });
   res.json({ message: 'Logged out successfully' });
 });
 

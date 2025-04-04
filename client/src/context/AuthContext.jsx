@@ -6,8 +6,11 @@ export const AuthContext = React.createContext(null);
 // Get user data from localStorage on initial load
 const getStoredUser = () => {
   try {
+    console.log('Getting stored user from localStorage');
     const storedUser = localStorage.getItem('user');
-    return storedUser ? JSON.parse(storedUser) : null;
+    const parsedUser = storedUser ? JSON.parse(storedUser) : null;
+    console.log('Stored user:', parsedUser);
+    return parsedUser;
   } catch (error) {
     console.error('Error reading user from localStorage:', error);
     return null;
@@ -21,9 +24,12 @@ export const AuthProvider = ({ children }) => {
 
   // Update localStorage when user state changes
   React.useEffect(() => {
+    console.log('User state changed:', user);
     if (user) {
+      console.log('Storing user in localStorage:', user);
       localStorage.setItem('user', JSON.stringify(user));
     } else {
+      console.log('Removing user from localStorage');
       localStorage.removeItem('user');
     }
   }, [user]);
@@ -71,9 +77,9 @@ export const AuthProvider = ({ children }) => {
         throw new Error('No user data received from server');
       }
 
-      // Store user data in state and localStorage
+      // Store user data in state
+      console.log('Setting user state:', response.data.user);
       setUser(response.data.user);
-      localStorage.setItem('user', JSON.stringify(response.data.user));
       
       return response.data.user;
     } catch (err) {
@@ -95,7 +101,6 @@ export const AuthProvider = ({ children }) => {
       
       // Clear user data
       setUser(null);
-      localStorage.removeItem('user');
     } catch (err) {
       console.error('Logout error:', err);
       const errorMessage = err.response?.data?.message || 'Logout failed';
@@ -115,9 +120,14 @@ export const AuthProvider = ({ children }) => {
     logout
   };
 
-  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
+  return (
+    <AuthContext.Provider value={value}>
+      {children}
+    </AuthContext.Provider>
+  );
 };
 
+// Custom hook to use auth context
 export const useAuth = () => {
   const context = React.useContext(AuthContext);
   if (!context) {

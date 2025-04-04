@@ -1,5 +1,32 @@
 const mongoose = require('mongoose');
 
+const subtopicSchema = new mongoose.Schema({
+  name: {
+    type: String,
+    required: true
+  },
+  description: String,
+  learningObjectives: [String],
+  resources: [{
+    type: {
+      type: String,
+      enum: ['video', 'document', 'link'],
+      required: true
+    },
+    url: String,
+    title: String,
+    description: String
+  }]
+});
+
+const topicSchema = new mongoose.Schema({
+  name: {
+    type: String,
+    required: true
+  },
+  subtopics: [subtopicSchema]
+});
+
 const curriculumSchema = new mongoose.Schema({
   gradeLevel: {
     type: String,
@@ -10,36 +37,15 @@ const curriculumSchema = new mongoose.Schema({
   subject: {
     type: String,
     enum: ['Mathematics', 'Science', 'English', 'History', 'Geography', 
-           'Physics', 'Chemistry', 'Biology', 'Computer Science', 'Pakistan Studies',
-           'Economics', 'Pakistan Studies - History', 'Pakistan Studies - Geography'],
+           'Physics', 'Chemistry', 'Biology', 'Computer Science',
+           'Pakistan Studies - History', 'Pakistan Studies - Geography',
+           'Economics'],
     required: true
   },
-  topics: [{
-    name: {
-      type: String,
-      required: true
-    },
-    subtopics: [{
-      name: {
-        type: String,
-        required: true
-      },
-      description: String,
-      learningObjectives: [String],
-      resources: [{
-        type: {
-          type: String,
-          enum: ['video', 'document', 'link'],
-          required: true
-        },
-        url: String,
-        title: String,
-        description: String
-      }]
-    }]
-  }]
+  topics: [topicSchema]
 }, {
-  timestamps: true
+  timestamps: true,
+  collection: 'curriculums' // Explicitly set the collection name
 });
 
 // Compound index to ensure unique grade-subject combinations

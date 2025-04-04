@@ -1,5 +1,5 @@
 .subjects-container {
-  padding: 24px;
+  padding: 2rem;
   max-width: 1200px;
   margin: 0 auto;
   min-height: 100vh;
@@ -58,15 +58,18 @@
 
 .subjects-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
   gap: 2rem;
+  margin-top: 2rem;
 }
 
 .subject-card {
-  height: 100%;
+  height: auto;
+  min-height: 300px;
+  transition: all 0.3s ease;
+  border-width: 2px;
   display: flex;
   flex-direction: column;
-  transition: all 0.3s;
   background: white;
   border-radius: 1rem;
   box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.1);
@@ -75,12 +78,49 @@
 
 .subject-card:hover {
   transform: translateY(-5px);
-  box-shadow: 0 0.75rem 1.5rem rgba(0, 0, 0, 0.15);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.subject-card.selected {
+  border-width: 2px;
 }
 
 .subject-icon {
-  font-size: 36px;
-  margin-bottom: 16px;
+  font-size: 2.5rem;
+  margin-bottom: 1rem;
+}
+
+.subject-details {
+  margin-top: 1rem;
+  flex-grow: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.subject-details .ant-list {
+  flex-grow: 1;
+  transition: max-height 0.3s ease-in-out;
+}
+
+.subject-details .ant-list-item {
+  padding: 8px 0;
+  border-bottom: none;
+}
+
+.loading-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 400px;
+}
+
+.subtitle {
+  color: rgba(0, 0, 0, 0.45);
+  margin-bottom: 2rem;
+}
+
+.error-alert {
+  margin-bottom: 2rem;
 }
 
 .progress-bar {
@@ -147,6 +187,16 @@
 .topics-preview li {
   margin: 8px 0;
   color: rgba(0, 0, 0, 0.65);
+}
+
+.subject-details .ant-btn-link {
+  margin-top: 0.5rem;
+  padding: 0;
+  color: rgba(0, 0, 0, 0.45);
+}
+
+.subject-details .ant-btn-link:hover {
+  color: #1890ff;
 }
 
 /* Responsive adjustments */

@@ -2,8 +2,9 @@ const express = require('express');
 const router = express.Router();
 const auth = require('../middleware/auth');
 const Curriculum = require('../models/Curriculum');
+const Flashcard = require('../models/Flashcard');
 
-// Generate flashcards from curriculum data for a specific subject
+// Get flashcard sets for a subject
 router.get('/:gradeLevel/:subject', auth, async (req, res) => {
   try {
     const { gradeLevel, subject } = req.params;
@@ -26,84 +27,133 @@ router.get('/:gradeLevel/:subject', auth, async (req, res) => {
 
     console.log(`Generating flashcards for ${formattedGradeLevel} ${formattedSubject}`);
 
-    const curriculum = await Curriculum.findOne({
-      gradeLevel: formattedGradeLevel,
-      subject: formattedSubject
+    // Find flashcards in the database
+    const flashcards = await Flashcard.find({
+      category: formattedSubject
     }).lean();
 
-    if (!curriculum) {
-      console.error(`No curriculum found for ${formattedGradeLevel} ${formattedSubject}`);
-      return res.status(404).json({ 
-        message: `No curriculum found for ${formattedGradeLevel} ${formattedSubject}` 
-      });
-    }
-
-    // Generate flashcards from curriculum data
-    const flashcardDecks = [];
-    
-    // Create a deck for each topic in the curriculum
-    curriculum.topics.forEach(topic => {
-      const deck = {
-        id: topic.name.toLowerCase().replace(/\s+/g, '-'),
-        title: topic.name,
-        cards: []
-      };
+    if (!flashcards || flashcards.length === 0) {
+      console.log('No flashcards found, generating from curriculum');
       
-      // Create flashcards for each subtopic's learning objectives
-      topic.subtopics.forEach(subtopic => {
-        subtopic.learningObjectives.forEach((objective, index) => {
-          // Create a question from the learning objective
-          const card = {
-            id: `${deck.id}-${subtopic.name.toLowerCase().replace(/\s+/g, '-')}-${index}`,
-            front: generateFlashcardQuestion(objective, subtopic.name),
-            back: objective
+      // If no flashcards in DB, get them from curriculum
+      const curriculum = await Curriculum.findOne({
+        gradeLevel: formattedGradeLevel,
+        subject: formattedSubject
+      }).lean();
+
+      if (!curriculum) {
+        console.error(`No curriculum found for ${formattedGradeLevel} ${formattedSubject}`);
+        return res.status(404).json({ 
+          message: `No curriculum found for ${formattedGradeLevel} ${formattedSubject}` 
+        });
+      }
+
+      // Transform curriculum data into flashcard sets
+      const flashcardSets = curriculum.topics.map(topic => ({
+        _id: topic._id.toString(),
+        title: topic.name,
+        subject: formattedSubject,
+        topic: topic.name,
+        cards: topic.subtopics.flatMap(subtopic => 
+          subtopic.learningObjectives.map((objective, index) => ({
+            _id: `${topic._id}-${subtopic._id}-${index}`,
+            front: generateFlashcardQuestion(objective),
+            back: objective,
+            topic: topic.name,
+            subtopic: subtopic.name
+          }))
+        )
+      })).filter(set => set.cards.length > 0);
+
+      // Save flashcards to database
+      await Flashcard.insertMany(flashcardSets.flatMap(set => set.cards.map(card => ({
+        topic: set.topic,
+        question: card.front,
+        answer: card.back,
+        difficulty: 'Medium',
+        category: formattedSubject,
+        userId: req.user._id
+      }))));
+
+      res.json(flashcardSets);
+    } else {
+      // Transform flashcards into sets
+      const flashcardSets = {};
+      flashcards.forEach(card => {
+        if (!flashcardSets[card.topic]) {
+          flashcardSets[card.topic] = {
+            _id: card.topic,
+            title: card.topic,
+            subject: formattedSubject,
+            topic: card.topic,
+            cards: []
           };
-          
-          deck.cards.push(card);
+        }
+        flashcardSets[card.topic].cards.push({
+          _id: card._id.toString(),
+          front: card.question,
+          back: card.answer,
+          topic: card.topic,
+          subtopic: ''
         });
       });
-      
-      // Only add decks that have cards
-      if (deck.cards.length > 0) {
-        flashcardDecks.push(deck);
-      }
-    });
 
-    // Log the number of decks and cards for debugging
-    console.log(`Generated ${flashcardDecks.length} decks with a total of ${flashcardDecks.reduce((sum, deck) => sum + deck.cards.length, 0)} cards`);
-
-    res.json({ 
-      subject: formattedSubject,
-      decks: flashcardDecks 
-    });
+      res.json(Object.values(flashcardSets));
+    }
   } catch (error) {
     console.error('Error generating flashcards:', error);
     res.status(500).json({ message: 'Failed to generate flashcards' });
   }
 });
 
-// Helper function to generate a question from a learning objective
-function generateFlashcardQuestion(objective, subtopicName) {
-  // Remove any leading/trailing whitespace and periods
-  objective = objective.trim().replace(/\.$/, '');
+// Update flashcard progress
+router.post('/progress/card/:setId/:cardId', auth, async (req, res) => {
+  try {
+    const { setId, cardId } = req.params;
+    const { confidenceLevel, studyTime, subject, topic, subtopic, totalCards } = req.body;
+    const userId = req.user.id;
 
-  // If the objective starts with a question word, return it as is
+    // TODO: Update flashcard progress in database
+    // For now, just acknowledge the update
+    res.json({ 
+      message: 'Progress updated',
+      setId,
+      cardId,
+      confidenceLevel,
+      studyTime,
+      subject,
+      topic,
+      subtopic,
+      totalCards
+    });
+  } catch (error) {
+    console.error('Error updating flashcard progress:', error);
+    res.status(500).json({ message: 'Failed to update progress' });
+  }
+});
+
+// Helper function to generate a question from a learning objective
+function generateFlashcardQuestion(objective) {
+  // Remove any leading/trailing whitespace and periods
+  const text = objective.trim().replace(/\.$/, '');
+
+  // If it starts with a question word, return it as is
   const questionWords = ['what', 'why', 'how', 'when', 'where', 'who', 'which'];
-  if (questionWords.some(word => objective.toLowerCase().startsWith(word))) {
-    return objective + '?';
+  if (questionWords.some(word => text.toLowerCase().startsWith(word))) {
+    return text + '?';
   }
 
-  // If the objective starts with "Understand", "Learn", "Know", etc., convert to a question
+  // If it starts with "Understand", "Learn", "Know", etc., convert to a question
   const learningVerbs = ['understand', 'learn', 'know', 'describe', 'explain', 'identify', 'list', 'define'];
   for (const verb of learningVerbs) {
-    if (objective.toLowerCase().startsWith(verb)) {
-      const question = objective.substring(verb.length).trim();
+    if (text.toLowerCase().startsWith(verb)) {
+      const question = text.substring(verb.length).trim();
       return `What do you ${verb.toLowerCase()} about${question}?`;
     }
   }
 
-  // Default: wrap the objective in a general question
-  return `Can you explain ${objective.toLowerCase()}?`;
+  // Default: wrap it in a general question
+  return `Can you explain ${text.toLowerCase()}?`;
 }
 
 module.exports = router;

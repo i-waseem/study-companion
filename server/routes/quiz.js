@@ -15,8 +15,8 @@ router.get('/debug', auth, async (req, res) => {
   res.json({ env: envVars });
 });
 
-// Debug route to test Gemini API
-router.get('/test-gemini', auth, async (req, res) => {
+// Test Gemini API connection
+router.get('/test-gemini', async (req, res) => {
   try {
     const result = await testGeminiAPI();
     res.json({ success: true, message: result });
@@ -24,9 +24,8 @@ router.get('/test-gemini', auth, async (req, res) => {
     console.error('Gemini API test failed:', error);
     res.status(500).json({ 
       success: false, 
-      error: error.message,
-      details: error.errorDetails || null,
-      apiKey: process.env.GEMINI_API_KEY ? 'Present' : 'Missing'
+      message: 'Gemini API test failed', 
+      error: error.message 
     });
   }
 });
@@ -153,28 +152,26 @@ function validateQuiz(quiz) {
 router.post('/generate', auth, async (req, res) => {
   try {
     const { subject, topic, subtopic, learningObjectives } = req.body;
-
-    console.log('Generating quiz with:', {
+    console.log('Quiz generation request:', {
       subject,
       topic,
       subtopic,
-      learningObjectives
+      learningObjectives: learningObjectives ? learningObjectives.length : 0
     });
 
-    // Generate quiz questions
-    const questions = await generateQuizQuestions({
-      subject,
-      topic,
-      subtopic,
-      learningObjectives
-    });
+    if (!subject || !topic || !subtopic) {
+      throw new Error('Missing required fields');
+    }
 
-    res.json({ questions });
+    const quiz = await generateQuizQuestions({ subject, topic, subtopic, learningObjectives });
+    console.log('Generated quiz with', quiz.questions ? quiz.questions.length : 0, 'questions');
+    
+    res.json(quiz);
   } catch (error) {
-    console.error('Error generating quiz:', error);
+    console.error('Quiz generation error:', error);
     res.status(500).json({ 
-      message: error.message || 'Failed to generate quiz questions',
-      details: error.details || null
+      error: error.message,
+      stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
     });
   }
 });

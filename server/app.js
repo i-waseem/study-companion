@@ -6,11 +6,18 @@ require('dotenv').config();
 
 const app = express();
 
+// Debug middleware
+app.use((req, res, next) => {
+  console.log(`${req.method} ${req.url}`);
+  console.log('Headers:', req.headers);
+  next();
+});
+
 // Middleware
 app.use(express.json());
 app.use(cookieParser());
 app.use(cors({
-  origin: ['http://localhost:5173', 'http://localhost:5174'],
+  origin: process.env.CLIENT_URL || 'http://localhost:5173',
   credentials: true
 }));
 
@@ -23,9 +30,9 @@ const quotesRoutes = require('./routes/quotes');
 const userRoutes = require('./routes/user');
 const notificationsRoutes = require('./routes/notifications');
 const achievementsRoutes = require('./routes/achievements');
-const flashcardsRoutes = require('./routes/flashcards');
+const flashcardSetRoutes = require('./routes/flashcardSets');
 
-// Use routes
+// Use routes with /api prefix
 app.use('/api/auth', authRoutes);
 app.use('/api/quiz', quizRoutes);
 app.use('/api/progress', progressRoutes);
@@ -34,7 +41,7 @@ app.use('/api/quotes', quotesRoutes);
 app.use('/api/user', userRoutes);
 app.use('/api/notifications', notificationsRoutes);
 app.use('/api/achievements', achievementsRoutes);
-app.use('/api/flashcards', flashcardsRoutes);
+app.use('/api/flashcards', flashcardSetRoutes);
 
 // Test endpoint
 app.get('/api/test', (req, res) => {
@@ -43,13 +50,28 @@ app.get('/api/test', (req, res) => {
 
 // Connect to MongoDB
 mongoose.connect(process.env.MONGODB_URI)
-  .then(() => console.log('Connected to MongoDB'))
+  .then(async () => {
+    console.log('Connected to MongoDB');
+    
+    // List all collections
+    const collections = await mongoose.connection.db.listCollections().toArray();
+    console.log('Available collections:', collections.map(c => c.name));
+    
+    // For each collection, count documents
+    for (const collection of collections) {
+      const count = await mongoose.connection.db.collection(collection.name).countDocuments();
+      console.log(`Collection ${collection.name} has ${count} documents`);
+    }
+  })
   .catch(err => console.error('MongoDB connection error:', err));
 
 // Error handling middleware
 app.use((err, req, res, next) => {
-  console.error(err.stack);
-  res.status(500).json({ error: 'Something went wrong!' });
+  console.error('Global error handler:', err);
+  res.status(500).json({ 
+    message: 'Internal Server Error',
+    error: process.env.NODE_ENV === 'development' ? err.message : undefined
+  });
 });
 
 const PORT = process.env.PORT || 5000;

@@ -7,13 +7,28 @@ import './SubjectSelection.css';
 const { Title } = Typography;
 const { Option } = Select;
 
+// Helper function to convert subject name to URL-friendly format
+const toUrlFriendly = (subject) => {
+  if (!subject) return '';
+  return subject.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
+};
+
+// Helper function to convert URL-friendly format back to display format
+const fromUrlFriendly = (urlSubject) => {
+  if (!urlSubject) return '';
+  return urlSubject
+    .split('-')
+    .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+    .join(' ');
+};
+
 function SubjectSelection() {
   const navigate = useNavigate();
-  const { subject } = useParams(); // Get subject from URL params
+  const { subject } = useParams();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [curriculum, setCurriculum] = useState(null);
-  const [selectedSubject, setSelectedSubject] = useState(subject || 'computer-science');
+  const [selectedSubject, setSelectedSubject] = useState(subject || '');
   const [selectedTopic, setSelectedTopic] = useState('');
   const [selectedSubtopic, setSelectedSubtopic] = useState('');
   const [subjects, setSubjects] = useState([]);
@@ -23,13 +38,22 @@ function SubjectSelection() {
     const fetchSubjects = async () => {
       try {
         setLoading(true);
-        const response = await api.get('/curriculum/subjects');
-        console.log('Subjects response:', response.data);
+        console.log('Fetching subjects...');
+        const response = await api.get('/api/curriculum/subjects');
+        console.log('Subjects API response:', response.data);
+        
         if (response.data && Array.isArray(response.data)) {
           setSubjects(response.data);
+          
+          // If no subject is selected and we have subjects, select the first one
+          if (!selectedSubject && response.data.length > 0) {
+            const firstSubject = response.data[0].urlFriendlySubject;
+            console.log('Auto-selecting first subject:', firstSubject);
+            setSelectedSubject(firstSubject);
+          }
         }
       } catch (err) {
-        console.error('Failed to fetch subjects:', err);
+        console.error('Failed to fetch subjects:', err.response || err);
         setError('Failed to load subjects. Please refresh the page.');
       } finally {
         setLoading(false);
@@ -41,175 +65,106 @@ function SubjectSelection() {
   // Fetch curriculum data for selected subject
   useEffect(() => {
     const fetchCurriculum = async () => {
-      if (!selectedSubject) return;
+      if (!selectedSubject) {
+        console.log('No subject selected, skipping curriculum fetch');
+        return;
+      }
       
       try {
         setLoading(true);
         setError(null);
-        console.log('Fetching curriculum for:', selectedSubject);
-        const response = await api.get(`/curriculum/o-level/${selectedSubject}`);
-        console.log('Curriculum data:', response.data);
+        
+        console.log('Fetching curriculum for subject:', selectedSubject);
+        const response = await api.get(`/api/curriculum/o-level/${selectedSubject}`);
+        console.log('Curriculum API response:', response.data);
+        
         if (response.data && response.data.topics) {
+          console.log('Setting curriculum with topics:', response.data.topics.map(t => t.name));
           setCurriculum(response.data);
-          setSelectedTopic('');
-          setSelectedSubtopic('');
         } else {
-          throw new Error('Invalid curriculum data format');
+          console.error('Invalid curriculum data:', response.data);
+          setError('Received invalid curriculum data');
         }
       } catch (err) {
-        console.error(`Failed to fetch curriculum for ${selectedSubject}:`, err);
-        setError(`Failed to fetch curriculum data for ${selectedSubject}. Please try refreshing the page.`);
+        console.error('Failed to fetch curriculum:', err.response || err);
+        setError(`Failed to fetch curriculum for ${selectedSubject}`);
         setCurriculum(null);
       } finally {
         setLoading(false);
       }
     };
-    
+
     fetchCurriculum();
   }, [selectedSubject]);
 
-  const handleSubjectChange = (subject) => {
-    console.log('Subject changed to:', subject);
-    setSelectedSubject(subject);
-  };
-
-  const handleTopicChange = (topicName) => {
-    console.log('Topic changed to:', topicName);
-    setSelectedTopic(topicName);
+  // Handle subject change
+  const handleSubjectChange = (value) => {
+    console.log('Selected subject changed to:', value);
+    setSelectedSubject(value);
+    setSelectedTopic('');
     setSelectedSubtopic('');
   };
 
-  const handleSubtopicChange = (subtopicName) => {
-    console.log('Subtopic changed to:', subtopicName);
-    setSelectedSubtopic(subtopicName);
+  // Helper function to check if curriculum matches subject
+  const doesCurriculumMatchSubject = (curriculumData, subjectData) => {
+    if (!curriculumData || !subjectData) return false;
+    
+    // Try different formats of subject names
+    const currSubject = curriculumData.subject.toLowerCase();
+    const dataSubject = subjectData.subject.toLowerCase();
+    
+    // Check if the subjects match in any format
+    return currSubject === dataSubject || 
+           currSubject === `pakistan studies - ${dataSubject.replace('pakistan studies - ', '')}` ||
+           dataSubject === `pakistan studies - ${currSubject.replace('pakistan studies - ', '')}` ||
+           currSubject.includes(dataSubject) ||
+           dataSubject.includes(currSubject);
   };
 
-  const handleStartQuiz = () => {
-    if (!selectedTopic || !selectedSubtopic) {
-      setError('Please select both a topic and subtopic');
-      return;
-    }
-
-    try {
-      // Find the selected topic object
-      const topic = curriculum.topics.find(t => t.name === selectedTopic);
-      if (!topic) {
-        throw new Error('Selected topic not found');
-      }
-
-      // Find the selected subtopic index
-      const subtopicIndex = topic.subtopics.findIndex(st => st.name === selectedSubtopic);
-      if (subtopicIndex === -1) {
-        throw new Error('Selected subtopic not found');
-      }
-
-      // Navigate to the quiz with encoded parameters
-      const encodedSubject = encodeURIComponent(selectedSubject);
-      const encodedTopic = encodeURIComponent(selectedTopic);
-      navigate(`/quiz/${encodedSubject}/${encodedTopic}/${subtopicIndex}`);
-    } catch (error) {
-      console.error('Navigation error:', error);
-      setError(error.message);
-    }
+  // Helper function to get display name for subject
+  const getDisplayName = (subject) => {
+    if (!subject) return '';
+    return subject; // Return the full subject name as it comes from the server
   };
-
-  if (loading && !curriculum && subjects.length === 0) {
-    return (
-      <div className="subject-selection-container">
-        <Card>
-          <div style={{ textAlign: 'center', padding: '2rem' }}>
-            <Spin size="large" />
-            <p style={{ marginTop: '1rem' }}>Loading subjects...</p>
-          </div>
-        </Card>
-      </div>
-    );
-  }
 
   return (
-    <div className="subject-selection-container">
-      <Card className="selection-card">
-        <Title level={2}>Start a Quiz</Title>
+    <div className="subject-selection">
+      <Title level={2}>O Level Subjects</Title>
+      <p className="subtitle">Select a subject to begin studying.</p>
 
-        {error && (
-          <Alert
-            message="Error"
-            description={error}
-            type="error"
-            showIcon
-            closable
-            onClose={() => setError(null)}
-            style={{ marginBottom: 16 }}
-          />
-        )}
+      {error && <Alert message={error} type="error" className="error-alert" />}
 
-        <div className="selection-form">
-          <div className="form-item">
-            <label>Select Subject:</label>
-            <Select
-              style={{ width: '100%' }}
-              value={selectedSubject}
-              onChange={handleSubjectChange}
-              loading={loading && subjects.length === 0}
+      <div className="subjects-grid">
+        {subjects.map((subjectData) => {
+          const isSelected = selectedSubject === subjectData.urlFriendlySubject;
+          const curriculumForSubject = curriculum && doesCurriculumMatchSubject(curriculum, subjectData) ? curriculum : null;
+          
+          return (
+            <Card
+              key={subjectData.urlFriendlySubject}
+              className={`subject-card ${isSelected ? 'selected' : ''}`}
+              onClick={() => handleSubjectChange(subjectData.urlFriendlySubject)}
             >
-              {subjects.map(subject => (
-                <Option key={subject.urlFriendlySubject} value={subject.urlFriendlySubject}>
-                  {subject.subject}
-                </Option>
-              ))}
-            </Select>
-          </div>
-
-          <div className="form-item">
-            <label>Select Topic:</label>
-            <Select
-              style={{ width: '100%' }}
-              value={selectedTopic}
-              onChange={handleTopicChange}
-              placeholder="Choose a topic"
-              loading={loading && selectedSubject}
-              disabled={!curriculum || loading}
-            >
-              {curriculum?.topics?.map(topic => (
-                <Option key={topic.name} value={topic.name}>{topic.name}</Option>
-              ))}
-            </Select>
-          </div>
-
-          {selectedTopic && (
-            <div className="form-item">
-              <label>Select Subtopic:</label>
-              <Select
-                style={{ width: '100%' }}
-                value={selectedSubtopic}
-                onChange={handleSubtopicChange}
-                placeholder="Choose a subtopic"
-                disabled={!selectedTopic || loading}
-              >
-                {curriculum?.topics
-                  .find(t => t.name === selectedTopic)
-                  ?.subtopics.map(subtopic => (
-                    <Option key={subtopic.name} value={subtopic.name}>
-                      {subtopic.name}
-                    </Option>
-                  ))}
-              </Select>
-            </div>
-          )}
-
-          <Button
-            type="primary"
-            onClick={handleStartQuiz}
-            disabled={!selectedTopic || !selectedSubtopic || loading}
-            loading={loading}
-            block
-            size="large"
-            style={{ marginTop: '1rem' }}
-          >
-            Start Quiz
-          </Button>
-        </div>
-      </Card>
+              <Title level={4}>{getDisplayName(subjectData.subject)}</Title>
+              {curriculumForSubject && (
+                <div className="subject-details">
+                  <Title level={5}>Key Topics:</Title>
+                  <ul>
+                    {curriculumForSubject.topics.map(topic => (
+                      <li key={topic.name}>{topic.name}</li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+              {loading && isSelected && (
+                <div className="loading-overlay">
+                  <Spin />
+                </div>
+              )}
+            </Card>
+          );
+        })}
+      </div>
     </div>
   );
 }

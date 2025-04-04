@@ -6,26 +6,26 @@ const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 // Function to generate quiz questions
 async function generateQuizQuestions({ subject, topic, subtopic, learningObjectives }) {
   try {
-    console.log('Generating quiz questions for:', {
-      subject,
-      topic,
-      subtopic,
-      learningObjectives
-    });
+    console.log('Initializing Gemini with API key:', process.env.GEMINI_API_KEY ? 'Present' : 'Missing');
+    
+    if (!process.env.GEMINI_API_KEY) {
+      throw new Error('Gemini API key is not configured');
+    }
 
     const model = genAI.getGenerativeModel({ model: 'models/gemini-2.0-flash' });
 
+    console.log('Sending prompt to Gemini for:', subject, topic, subtopic);
     const prompt = `Create a quiz about ${subtopic} in ${subject} (${topic}). 
 Use these specific learning objectives:
 ${learningObjectives ? learningObjectives.map(obj => '- ' + obj).join('\n') : 'General understanding of the topic'}
 
-Return EXACTLY 10 questions in this format:
+Return EXACTLY 10 questions in this JSON format (no markdown, no code blocks, just pure JSON):
 {
   "questions": [
     {
       "question": "Question text here?",
       "options": ["Option A", "Option B", "Option C", "Option D"],
-      "correctAnswer": 0,
+      "correctAnswer": "Option A",
       "explanation": "Brief explanation of why this is correct"
     }
   ]
@@ -36,85 +36,74 @@ Make sure:
 2. Questions are clear and unambiguous
 3. All options are plausible but only one is correct
 4. Explanations are concise but informative
-5. The response is valid JSON
+5. The response must be pure JSON with NO markdown or code block markers
 6. Include exactly 4 options for each question
 7. Questions are at O-Level standard
 8. Questions test understanding, not just memorization
-9. correctAnswer should be the index (0-3) of the correct option
+9. correctAnswer must be the exact text of the correct option
 10. Distribute questions evenly across all learning objectives`;
 
-    console.log('Sending prompt to Gemini:', prompt);
-
+    console.log('Waiting for Gemini response...');
     const result = await model.generateContent(prompt);
-    console.log('Raw API response:', result);
-
     const response = await result.response;
-    console.log('Processed response:', response);
-
     const text = response.text();
-    console.log('Response text:', text);
-    
+    console.log('Received response from Gemini, length:', text.length);
+
+    // Clean up any markdown or code block markers
+    const cleanJson = text.replace(/```json\s*|\s*```/g, '').trim();
+    console.log('Cleaned JSON length:', cleanJson.length);
+
     try {
-      const jsonMatch = text.match(/\{[\s\S]*\}/);
-      if (!jsonMatch) {
-        throw new Error('No JSON found in response');
+      const parsedQuestions = JSON.parse(cleanJson);
+      
+      // Validate the structure
+      if (!parsedQuestions.questions || !Array.isArray(parsedQuestions.questions)) {
+        throw new Error('Invalid quiz format: missing questions array');
       }
 
-      const parsedResponse = JSON.parse(jsonMatch[0]);
-      if (!parsedResponse.questions || !Array.isArray(parsedResponse.questions)) {
-        throw new Error('Invalid response format');
-      }
+      // Validate each question
+      parsedQuestions.questions.forEach((q, i) => {
+        if (!q.question || !q.options || !q.correctAnswer || !q.explanation) {
+          throw new Error(`Question ${i + 1} is missing required fields`);
+        }
+        if (!q.options.includes(q.correctAnswer)) {
+          throw new Error(`Question ${i + 1} has invalid correct answer`);
+        }
+        if (q.options.length !== 4) {
+          throw new Error(`Question ${i + 1} must have exactly 4 options`);
+        }
+      });
 
       // Validate question count
-      if (parsedResponse.questions.length !== 10) {
-        throw new Error(`Expected 10 questions but got ${parsedResponse.questions.length}`);
+      if (parsedQuestions.questions.length !== 10) {
+        throw new Error(`Expected 10 questions but got ${parsedQuestions.questions.length}`);
       }
 
-      return parsedResponse.questions;
+      console.log('Successfully parsed quiz with', parsedQuestions.questions.length, 'questions');
+      return parsedQuestions;
     } catch (parseError) {
-      console.error('Failed to parse Gemini response:', parseError);
-      throw new Error('Failed to parse quiz questions');
+      console.error('JSON Parse Error:', parseError);
+      console.error('Raw Response:', text);
+      throw new Error('Failed to parse quiz response: ' + parseError.message);
     }
   } catch (error) {
-    console.error('Error generating quiz questions:', error);
-    throw new Error('Failed to generate quiz questions: ' + error.message);
+    console.error('Quiz Generation Error:', error);
+    if (error.response) {
+      console.error('API Response:', error.response);
+    }
+    throw error;
   }
 }
 
 // Debug function to test API connection
 async function testGeminiAPI() {
   try {
-    console.log('Testing Gemini API connection...');
-    console.log('API Key present:', !!process.env.GEMINI_API_KEY);
-    
-    const model = genAI.getGenerativeModel({ model: 'models/gemini-2.0-flash' });
-    
-    console.log('Model configuration:', {
-      name: model.model
-    });
-
-    const prompt = 'Say "Hello" if you can hear me.';
-    console.log('Sending test prompt:', prompt);
-    
-    const result = await model.generateContent(prompt);
-    console.log('Raw API response:', result);
-    
+    const model = genAI.getGenerativeModel({ model: "models/gemini-2.0-flash" });
+    const result = await model.generateContent("Say 'API is working!'");
     const response = await result.response;
-    console.log('Processed response:', response);
-    
-    const text = response.text();
-    console.log('Final text:', text);
-    
-    return text;
+    return response.text();
   } catch (error) {
-    console.error('Gemini API test failed with error:', {
-      name: error.name,
-      message: error.message,
-      status: error.status,
-      statusText: error.statusText,
-      errorDetails: error.errorDetails,
-      stack: error.stack
-    });
+    console.error('Gemini API test failed:', error);
     throw error;
   }
 }

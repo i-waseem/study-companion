@@ -1,117 +1,121 @@
 const express = require('express');
 const router = express.Router();
 const Progress = require('../models/Progress');
-const { GoogleGenerativeAI } = require('@google/generative-ai');
+const auth = require('../middleware/auth');
+const mongoose = require('mongoose');
 
-const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
-
-// Get user's progress for all subjects
-router.get('/user/:userId', async (req, res) => {
+// Get user's progress
+router.get('/user/:userId', auth, async (req, res) => {
   try {
-    const { userId } = req.params;
-    const progress = await Progress.find({ userId });
+    console.log('Fetching progress for user:', req.params.userId);
+    
+    // Ensure userId is a valid ObjectId
+    if (!mongoose.Types.ObjectId.isValid(req.params.userId)) {
+      return res.status(400).json({ message: 'Invalid user ID format' });
+    }
+    
+    let progress = await Progress.findOne({ 
+      userId: req.params.userId 
+    });
+    
+    console.log('Found progress:', progress);
+    
+    if (!progress) {
+      console.log('No progress found, creating default');
+      progress = new Progress({
+        userId: req.params.userId,
+        quizzes: [],
+        subjects: []
+      });
+      await progress.save();
+      console.log('Created default progress:', progress);
+    }
     res.json(progress);
-  } catch (error) {
-    console.error('Error fetching progress:', error);
-    res.status(500).json({ message: 'Server error' });
+  } catch (err) {
+    console.error('Error fetching progress:', err);
+    res.status(500).json({ message: 'Server error', error: err.message });
   }
 });
 
-// Get progress for specific subject and topic
-router.get('/user/:userId/:subject/:topic', async (req, res) => {
+// Record a quiz attempt
+router.post('/quiz', auth, async (req, res) => {
   try {
-    const { userId, subject, topic } = req.params;
-    const progress = await Progress.findOne({ userId, subject, topic });
+    console.log('Recording quiz attempt:', req.body);
+    const { subject, topic, score, totalQuestions } = req.body;
     
-    if (!progress) {
-      return res.status(404).json({ message: 'Progress not found' });
+    // Input validation
+    if (!subject || !topic || typeof score !== 'number' || !totalQuestions) {
+      return res.status(400).json({ 
+        message: 'Invalid input', 
+        received: { subject, topic, score, totalQuestions } 
+      });
     }
-    
-    res.json(progress);
-  } catch (error) {
-    console.error('Error fetching progress:', error);
-    res.status(500).json({ message: 'Server error' });
-  }
-});
 
-// Update quiz results and get AI-generated recommendations
-router.post('/quiz-result', async (req, res) => {
-  try {
-    const { userId, subject, topic, quizResult } = req.body;
-    
-    // Find or create progress record
-    let progress = await Progress.findOne({ userId, subject, topic });
-    if (!progress) {
-      progress = new Progress({ userId, subject, topic });
+    // Ensure user ID is valid
+    if (!mongoose.Types.ObjectId.isValid(req.user.userId)) {
+      return res.status(400).json({ message: 'Invalid user ID format' });
     }
+
+    let progress = await Progress.findOne({ 
+      userId: req.user.userId 
+    });
     
+    console.log('Found existing progress:', progress);
+    
+    if (!progress) {
+      progress = new Progress({ 
+        userId: req.user.userId,
+        quizzes: [],
+        subjects: []
+      });
+    }
+
     // Add quiz result
-    progress.quizResults.push(quizResult);
-    
-    // Update topic progress
-    if (!progress.topicProgress.started) {
-      progress.topicProgress.started = new Date();
-      progress.topicProgress.status = 'in-progress';
-    }
-    
-    // Calculate mastery level based on recent quiz performances
-    const recentQuizzes = progress.quizResults.slice(-3);
-    const averageScore = recentQuizzes.reduce((acc, quiz) => 
-      acc + (quiz.score / quiz.totalQuestions), 0) / recentQuizzes.length;
-    
-    if (averageScore >= 0.9) progress.topicProgress.masteryLevel = 'master';
-    else if (averageScore >= 0.75) progress.topicProgress.masteryLevel = 'advanced';
-    else if (averageScore >= 0.6) progress.topicProgress.masteryLevel = 'intermediate';
-    else progress.topicProgress.masteryLevel = 'beginner';
-    
-    // Generate AI recommendations based on quiz performance
-    const model = genAI.getGenerativeModel({ model: "gemini-pro" });
-    const prompt = `Based on a student's quiz performance in ${subject} (${topic}):
-    - Score: ${quizResult.score}/${quizResult.totalQuestions}
-    - Incorrect answers: ${JSON.stringify(quizResult.incorrectAnswers)}
-    
-    Provide 3 specific recommendations for improvement in JSON format:
-    {
-      "recommendations": [
-        {
-          "type": "specific_recommendation",
-          "reason": "explanation_for_recommendation"
-        }
-      ]
-    }`;
-    
-    const result = await model.generateContent(prompt);
-    const aiRecommendations = JSON.parse(result.response.text());
-    
-    // Add AI recommendations
-    progress.recommendations.push(...aiRecommendations.recommendations);
-    
-    await progress.save();
-    res.json(progress);
-  } catch (error) {
-    console.error('Error updating progress:', error);
-    res.status(500).json({ message: 'Server error' });
-  }
-});
+    const quizResult = {
+      subject,
+      topic,
+      score,
+      totalQuestions,
+      date: new Date()
+    };
+    progress.quizzes.push(quizResult);
+    console.log('Added quiz result:', quizResult);
 
-// Update study time
-router.post('/study-time', async (req, res) => {
-  try {
-    const { userId, subject, topic, duration } = req.body;
-    
-    let progress = await Progress.findOne({ userId, subject, topic });
-    if (!progress) {
-      progress = new Progress({ userId, subject, topic });
+    // Find or create subject
+    let subjectDoc = progress.subjects.find(s => s.name === subject);
+    if (!subjectDoc) {
+      subjectDoc = { name: subject, topics: [] };
+      progress.subjects.push(subjectDoc);
     }
-    
-    progress.studyTime.total += duration;
-    progress.studyTime.lastStudySession = new Date();
-    
+
+    // Find or create topic
+    let topicDoc = subjectDoc.topics.find(t => t.name === topic);
+    if (!topicDoc) {
+      topicDoc = {
+        name: topic,
+        quizzesTaken: 0,
+        averageScore: 0
+      };
+      subjectDoc.topics.push(topicDoc);
+    }
+
+    // Update topic stats
+    const percentageScore = (score / totalQuestions) * 100;
+    const newQuizzesTaken = topicDoc.quizzesTaken + 1;
+    const newAverageScore = (
+      (topicDoc.averageScore * topicDoc.quizzesTaken) + percentageScore
+    ) / newQuizzesTaken;
+
+    topicDoc.quizzesTaken = newQuizzesTaken;
+    topicDoc.averageScore = newAverageScore;
+
+    console.log('Saving progress:', progress);
     await progress.save();
+    console.log('Progress saved successfully');
     res.json(progress);
-  } catch (error) {
-    console.error('Error updating study time:', error);
-    res.status(500).json({ message: 'Server error' });
+  } catch (err) {
+    console.error('Error recording quiz progress:', err);
+    res.status(500).json({ message: 'Server error', error: err.message });
   }
 });
 
