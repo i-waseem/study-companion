@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const auth = require('../middleware/auth');
 const Curriculum = require('../models/Curriculum');
+const Quiz = require('../models/Quiz');
 const { generateQuizQuestions, testGeminiAPI } = require('../services/quiz');
 
 // Debug route to check environment variables
@@ -116,34 +117,24 @@ function validateQuiz(quiz) {
 
   return quiz.questions.map(q => {
     // Validate question structure
-    if (!q.type || !q.explanation || !q.difficulty) {
+    if (!q.question || !q.options || !q.correctAnswer || !q.explanation) {
       console.error('Invalid question:', q);
       throw new Error(`Invalid question format: missing required fields`);
     }
 
     // Validate multiple choice questions
-    if (q.type === 'multiple_choice') {
-      if (!q.options || q.options.length !== 4) {
-        throw new Error('Multiple choice questions must have exactly 4 options');
-      }
-      if (typeof q.correctAnswer !== 'number' || q.correctAnswer < 0 || q.correctAnswer > 3) {
-        throw new Error('Multiple choice questions must have a valid correctAnswer (0-3)');
-      }
+    if (!Array.isArray(q.options) || q.options.length !== 4) {
+      throw new Error('Questions must have exactly 4 options');
     }
 
-    // Validate true/false questions
-    if (q.type === 'true_false' && typeof q.isTrue !== 'boolean') {
-      throw new Error('True/false questions must have a boolean isTrue field');
-    }
-
-    // Validate short answer questions
-    if (q.type === 'short_answer' && (!q.keyPoints || !Array.isArray(q.keyPoints))) {
-      throw new Error('Short answer questions must have an array of keyPoints');
+    // Validate that correctAnswer is one of the options
+    if (!q.options.includes(q.correctAnswer)) {
+      throw new Error('Correct answer must be one of the options');
     }
 
     return {
       ...q,
-      difficulty: ['easy', 'medium', 'hard'].includes(q.difficulty.toLowerCase()) ? q.difficulty.toLowerCase() : 'medium'
+      type: 'multiple_choice'
     };
   });
 }
@@ -151,22 +142,19 @@ function validateQuiz(quiz) {
 // Generate quiz based on topic and subtopic
 router.post('/generate', auth, async (req, res) => {
   try {
-    const { subject, topic, subtopic, learningObjectives } = req.body;
-    console.log('Quiz generation request:', {
-      subject,
-      topic,
-      subtopic,
-      learningObjectives: learningObjectives ? learningObjectives.length : 0
-    });
+    const { subject, topic, subtopic, count = 10 } = req.body;
+    console.log('Quiz generation request:', { subject, topic, subtopic, count });
 
     if (!subject || !topic || !subtopic) {
       throw new Error('Missing required fields');
     }
 
-    const quiz = await generateQuizQuestions({ subject, topic, subtopic, learningObjectives });
+    const quiz = await generateQuizQuestions({ subject, topic, subtopic, count });
     console.log('Generated quiz with', quiz.questions ? quiz.questions.length : 0, 'questions');
     
-    res.json(quiz);
+    // Validate quiz structure
+    const validatedQuestions = validateQuiz(quiz);
+    res.json({ questions: validatedQuestions });
   } catch (error) {
     console.error('Quiz generation error:', error);
     res.status(500).json({ 
@@ -177,6 +165,29 @@ router.post('/generate', auth, async (req, res) => {
 });
 
 // Submit quiz route
-router.post('/submit', auth, require('../controllers/quizController').submitQuiz);
+router.post('/submit', auth, async (req, res) => {
+  try {
+    const { subject, topic, subtopic, score, totalQuestions, incorrectAnswers, timeTaken } = req.body;
+    const userId = req.user.id;
+
+    // Save quiz results to database
+    const result = await Quiz.create({
+      user: userId,
+      subject,
+      topic,
+      subtopic,
+      score,
+      totalQuestions,
+      incorrectAnswers,
+      timeTaken,
+      completedAt: new Date()
+    });
+
+    res.json({ success: true, result });
+  } catch (error) {
+    console.error('Error submitting quiz:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
 
 module.exports = router;
