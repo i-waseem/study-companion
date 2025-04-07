@@ -11,61 +11,39 @@ console.log('Environment variables loaded:', {
   JWT_SECRET: process.env.JWT_SECRET ? 'Present' : 'Missing'
 });
 
-const express = require('express');
+// Import the Express app from app.js
+const app = require('./app');
+
+// Import required modules
 const mongoose = require('mongoose');
-const cors = require('cors');
-const cookieParser = require('cookie-parser');
+const cron = require('node-cron');
+const { checkInactiveUsers } = require('./controllers/notificationController');
 
-const app = express();
+// Connect to MongoDB and start server
+console.log('Attempting to connect to MongoDB...');
+mongoose.connect(process.env.MONGODB_URI)
+  .then(() => {
+    console.log('Successfully connected to MongoDB Atlas');
 
-// Log environment variables (excluding sensitive data)
-console.log('Environment check:', {
-  port: process.env.PORT,
-  hasGeminiKey: !!process.env.GEMINI_API_KEY,
-  hasMongoUri: !!process.env.MONGODB_URI,
-  nodeEnv: process.env.NODE_ENV
-});
+    // Schedule inactive user check (every day at midnight)
+    cron.schedule('0 0 * * *', checkInactiveUsers);
 
-// CORS configuration - must be before other middleware
-app.use(cors({
-  origin: 'http://localhost:5173',
-  credentials: true,
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'Cookie'],
-  exposedHeaders: ['Set-Cookie']
-}));
-
-// Middleware
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
-app.use(cookieParser());
-
-// Configure cookie settings
-app.use((req, res, next) => {
-  // Ensure consistent cookie settings across the app
-  res.cookie = function(name, value, options = {}) {
-    const defaultOptions = {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'lax',
-      path: '/',
-      maxAge: 24 * 60 * 60 * 1000 // 24 hours
-    };
-    return express.response.cookie.call(this, name, value, { ...defaultOptions, ...options });
-  };
-  
-  res.clearCookie = function(name, options = {}) {
-    const defaultOptions = {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'lax',
-      path: '/'
-    };
-    return express.response.clearCookie.call(this, name, { ...defaultOptions, ...options });
-  };
-  
-  next();
-});
+    // Start the server
+    const PORT = process.env.PORT || 5000;
+    app.listen(PORT, () => {
+      console.log(`Server is running on port ${PORT}`);
+      console.log('Environment:', {
+        NODE_ENV: process.env.NODE_ENV,
+        MONGODB_URI: process.env.MONGODB_URI ? 'Set' : 'Not set',
+        GEMINI_API_KEY: process.env.GEMINI_API_KEY ? 'Set' : 'Not set',
+        PORT: process.env.PORT
+      });
+    });
+  })
+  .catch(err => {
+    console.error('MongoDB connection error:', err);
+    process.exit(1);
+  });
 
 // Debug middleware to log requests
 app.use((req, res, next) => {
@@ -138,34 +116,7 @@ process.on('unhandledRejection', (reason, promise) => {
   }
 });
 
-// MongoDB Connection
-console.log('Attempting to connect to MongoDB...');
-mongoose.connect(process.env.MONGODB_URI)
-  .then(() => {
-    console.log('Successfully connected to MongoDB Atlas');
-
-    // Schedule inactive user check (every day at midnight)
-    const { checkInactiveUsers } = require('./controllers/notificationController');
-    const cron = require('node-cron');
-    cron.schedule('0 0 * * *', checkInactiveUsers);
-
-    const PORT = process.env.PORT || 5000;
-    app.listen(PORT, () => {
-      console.log('Setting up routes...');
-      console.log(`Server is running on port ${PORT}`);
-      console.log('Environment:', {
-        NODE_ENV: process.env.NODE_ENV,
-        MONGODB_URI: process.env.MONGODB_URI ? 'Set' : 'Not set',
-        GEMINI_API_KEY: process.env.GEMINI_API_KEY ? 'Set' : 'Not set',
-        PORT: process.env.PORT
-      });
-    });
-  })
-  .catch(err => {
-    console.error('MongoDB connection error:', err);
-    process.exit(1);
-  });
-
+// MongoDB connection event handlers
 mongoose.connection.on('error', err => {
   console.error('MongoDB error:', err);
 });

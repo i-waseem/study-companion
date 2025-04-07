@@ -3,14 +3,18 @@ import api from '../api/config';
 export const getGeminiResponse = async () => {
   try {
     console.log('Requesting quote from server...');
-    const response = await api.get('/quotes');
+    const response = await fetch('http://localhost:5000/api/quotes');
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+    const data = await response.json();
     console.log('Quote response:', {
-      isGemini: response.data.isGemini,
-      hasQuote: !!response.data.quote,
-      hasSource: !!response.data.source,
-      error: response.data.error
+      isGemini: data.isGemini,
+      hasQuote: !!data.quote,
+      hasSource: !!data.source,
+      error: data.error
     });
-    return response.data;
+    return data;
   } catch (error) {
     console.error('Error in getGeminiResponse:', {
       message: error.message,

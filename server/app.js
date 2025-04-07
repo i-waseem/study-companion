@@ -6,20 +6,72 @@ require('dotenv').config();
 
 const app = express();
 
-// Debug middleware
+// Basic configuration
+app.use(cors({
+  origin: process.env.CLIENT_URL || 'http://localhost:5173',
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'Cookie'],
+  exposedHeaders: ['Set-Cookie']
+}));
+
+// Basic middleware
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
+app.use(cookieParser());
+
+// Configure cookie settings
 app.use((req, res, next) => {
-  console.log(`${req.method} ${req.url}`);
-  console.log('Headers:', req.headers);
+  // Ensure consistent cookie settings across the app
+  res.cookie = function(name, value, options = {}) {
+    const defaultOptions = {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax',
+      path: '/',
+      maxAge: 24 * 60 * 60 * 1000 // 24 hours
+    };
+    return express.response.cookie.call(this, name, value, { ...defaultOptions, ...options });
+  };
+
+  res.clearCookie = function(name, options = {}) {
+    const defaultOptions = {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax',
+      path: '/'
+    };
+    return express.response.clearCookie.call(this, name, { ...defaultOptions, ...options });
+  };
+
   next();
 });
 
-// Middleware
-app.use(express.json());
-app.use(cookieParser());
-app.use(cors({
-  origin: process.env.CLIENT_URL || 'http://localhost:5173',
-  credentials: true
-}));
+// Debug middleware
+app.use((req, res, next) => {
+  console.log('=== Incoming Request ===');
+  console.log(`${req.method} ${req.url}`);
+  console.log('Headers:', req.headers);
+  console.log('Body:', req.body);
+  console.log('Query:', req.query);
+  console.log('=== End Request ===');
+  next();
+});
+
+// Basic health check endpoint
+app.get('/', (req, res) => {
+  res.send('Server is running');
+});
+
+// Test endpoint
+app.get('/test-quote', (req, res) => {
+  console.log('Test quote endpoint hit');
+  res.json({
+    quote: 'Test quote',
+    source: 'Test',
+    isGemini: false
+  });
+});
 
 // Import routes
 const authRoutes = require('./routes/auth');
@@ -43,27 +95,28 @@ app.use('/api/notifications', notificationsRoutes);
 app.use('/api/achievements', achievementsRoutes);
 app.use('/api/flashcards', flashcardSetRoutes);
 
-// Test endpoint
-app.get('/api/test', (req, res) => {
-  res.json({ message: 'Server is running properly' });
+// Debug endpoint to log all registered routes
+app._router.stack.forEach(middleware => {
+  if (middleware.route) {
+    console.log(`Route: ${middleware.route.path}`);
+  } else if (middleware.name === 'router') {
+    middleware.handle.stack.forEach(handler => {
+      if (handler.route) {
+        console.log(`Route: ${handler.route.path}`);
+      }
+    });
+  }
 });
 
-// Connect to MongoDB
-mongoose.connect(process.env.MONGODB_URI)
-  .then(async () => {
-    console.log('Connected to MongoDB');
-    
-    // List all collections
-    const collections = await mongoose.connection.db.listCollections().toArray();
-    console.log('Available collections:', collections.map(c => c.name));
-    
-    // For each collection, count documents
-    for (const collection of collections) {
-      const count = await mongoose.connection.db.collection(collection.name).countDocuments();
-      console.log(`Collection ${collection.name} has ${count} documents`);
-    }
-  })
-  .catch(err => console.error('MongoDB connection error:', err));
+// Test endpoints
+app.get('/api/quotes-direct', (req, res) => {
+  console.log('Direct quotes endpoint hit');
+  res.json({
+    quote: 'This is a direct test quote',
+    source: 'Direct Test',
+    isGemini: false
+  });
+});
 
 // Error handling middleware
 app.use((err, req, res, next) => {
@@ -74,7 +127,5 @@ app.use((err, req, res, next) => {
   });
 });
 
-const PORT = process.env.PORT || 5000;
-app.listen(PORT, () => {
-  console.log(`Server is running on port ${PORT}`);
-});
+// Export the app
+module.exports = app;

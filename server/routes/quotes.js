@@ -30,15 +30,25 @@ router.get('/', async (req, res) => {
     const model = genAI.getGenerativeModel({ model: 'models/gemini-2.0-flash' });
     console.log('Model selected: gemini-2.0-flash');
 
+    const themes = [
+      'education', 'learning', 'discipline', 'perseverance',
+      'academic success', 'student motivation', 'study habits',
+      'knowledge', 'wisdom', 'academic excellence'
+    ];
+    
+    // Select a random theme
+    const selectedTheme = themes[Math.floor(Math.random() * themes.length)];
+    
     const prompt = {
       contents: [{
         role: 'user',
         parts: [{
-          text: `Generate an inspiring quote about learning or education. 
+          text: `Generate an inspiring quote about ${selectedTheme} from a famous historical figure, educator, philosopher, scientist, or leader.
+                The quote should be meaningful and relevant to students.
                 Return it in this exact JSON format without any markdown formatting or code blocks:
                 {
-                  "quote": "the quote text here",
-                  "source": "the source/author here"
+                  "quote": "the actual quote text here",
+                  "source": "Full Name (with brief context if relevant)"
                 }`
         }]
       }]
