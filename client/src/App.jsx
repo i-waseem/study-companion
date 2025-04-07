@@ -5,6 +5,8 @@ import Sidebar from './components/Sidebar';
 import Login from './components/Login';
 import Register from './components/Register';
 import Quiz from './components/Quiz';
+import QuizSelection from './components/QuizSelection';
+import QuizSubjects from './components/QuizSubjects';
 import SubjectSelection from './components/SubjectSelection';
 import Home from './components/Home';
 import Subjects from './components/Subjects';
@@ -48,7 +50,12 @@ function AppRoutes() {
           } />
           <Route path="/quiz" element={
             <ProtectedRoute>
-              <SubjectSelection />
+              <QuizSubjects />
+            </ProtectedRoute>
+          } />
+          <Route path="/quiz-selection/:subjectId" element={
+            <ProtectedRoute>
+              <QuizSelection />
             </ProtectedRoute>
           } />
           <Route path="/quiz/:subjectId/:topicId/:subtopicId" element={

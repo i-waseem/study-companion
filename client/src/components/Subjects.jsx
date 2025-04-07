@@ -39,7 +39,7 @@ function Subjects() {
         
         // First fetch all available subjects
         console.log('Fetching subjects...');
-        const subjectsResponse = await api.get('/curriculum/subjects');
+        const subjectsResponse = await api.get('/api/curriculum/subjects');
         console.log('Subjects response:', subjectsResponse.data);
         
         if (!subjectsResponse.data || !Array.isArray(subjectsResponse.data)) {
@@ -55,7 +55,7 @@ function Subjects() {
         for (const subject of availableSubjects) {
           try {
             console.log(`Fetching curriculum for ${subject.subject} (${subject.urlFriendlySubject})`);
-            const response = await api.get(`/curriculum/o-level/${subject.urlFriendlySubject}`);
+            const response = await api.get(`/api/curriculum/o-level/${subject.urlFriendlySubject}`);
             console.log(`Curriculum response for ${subject.subject}:`, response.data);
             if (response.data && response.data.topics) {
               curriculumData[subject.subject] = response.data;
@@ -97,7 +97,7 @@ function Subjects() {
     const urlFriendlySubject = selectedSubjectObj.urlFriendlySubject;
     
     if (mode === 'quiz') {
-      navigate(`/subject-selection/${urlFriendlySubject}`);
+      navigate(`/quiz-selection/${urlFriendlySubject}`);
     } else if (mode === 'flashcards') {
       navigate(`/flashcards/${urlFriendlySubject}`);
     }
